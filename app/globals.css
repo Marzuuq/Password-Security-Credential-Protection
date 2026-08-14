@@ -1,0 +1,166 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-3: var(--chart-3);
+  --font-sans: 'Geist', 'Geist Fallback', sans-serif;
+  --font-mono: 'Geist Mono', 'Share Tech Mono', 'Courier New', monospace;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+/* Default Theme: Matrix Emerald Hacker */
+:root, [data-theme="matrix"] {
+  color-scheme: dark;
+  --background: oklch(0.08 0.02 155);
+  --foreground: oklch(0.92 0.08 155);
+  --card: oklch(0.12 0.03 155);
+  --card-foreground: oklch(0.92 0.08 155);
+  --popover: oklch(0.12 0.03 155);
+  --popover-foreground: oklch(0.92 0.08 155);
+  --primary: oklch(0.85 0.28 155);
+  --primary-foreground: oklch(0.08 0.02 155);
+  --secondary: oklch(0.18 0.05 155);
+  --secondary-foreground: oklch(0.92 0.08 155);
+  --muted: oklch(0.16 0.04 155);
+  --muted-foreground: oklch(0.68 0.12 155);
+  --accent: oklch(0.2 0.06 155);
+  --accent-foreground: oklch(0.95 0.1 155);
+  --destructive: oklch(0.65 0.25 25);
+  --border: oklch(0.24 0.08 155);
+  --input: oklch(0.22 0.07 155);
+  --ring: oklch(0.85 0.28 155);
+  --chart-3: oklch(0.8 0.2 90);
+}
+
+/* Cyber Neon Cyan Theme */
+[data-theme="cyber"] {
+  color-scheme: dark;
+  --background: oklch(0.08 0.03 230);
+  --foreground: oklch(0.92 0.08 210);
+  --card: oklch(0.12 0.04 230);
+  --card-foreground: oklch(0.92 0.08 210);
+  --popover: oklch(0.12 0.04 230);
+  --popover-foreground: oklch(0.92 0.08 210);
+  --primary: oklch(0.82 0.22 210);
+  --primary-foreground: oklch(0.08 0.03 230);
+  --secondary: oklch(0.18 0.06 230);
+  --secondary-foreground: oklch(0.92 0.08 210);
+  --muted: oklch(0.16 0.05 230);
+  --muted-foreground: oklch(0.68 0.1 210);
+  --accent: oklch(0.22 0.08 230);
+  --accent-foreground: oklch(0.95 0.1 210);
+  --destructive: oklch(0.65 0.25 25);
+  --border: oklch(0.25 0.09 210);
+  --input: oklch(0.22 0.08 210);
+  --ring: oklch(0.82 0.22 210);
+  --chart-3: oklch(0.8 0.2 90);
+}
+
+/* Red Alert Threat Theme */
+[data-theme="red-alert"] {
+  color-scheme: dark;
+  --background: oklch(0.08 0.03 20);
+  --foreground: oklch(0.92 0.08 25);
+  --card: oklch(0.12 0.04 20);
+  --card-foreground: oklch(0.92 0.08 25);
+  --popover: oklch(0.12 0.04 20);
+  --popover-foreground: oklch(0.92 0.08 25);
+  --primary: oklch(0.7 0.28 25);
+  --primary-foreground: oklch(0.08 0.03 20);
+  --secondary: oklch(0.18 0.06 20);
+  --secondary-foreground: oklch(0.92 0.08 25);
+  --muted: oklch(0.16 0.05 20);
+  --muted-foreground: oklch(0.68 0.12 25);
+  --accent: oklch(0.22 0.08 20);
+  --accent-foreground: oklch(0.95 0.1 25);
+  --destructive: oklch(0.65 0.28 25);
+  --border: oklch(0.28 0.12 25);
+  --input: oklch(0.24 0.1 25);
+  --ring: oklch(0.7 0.28 25);
+  --chart-3: oklch(0.8 0.2 90);
+}
+
+/* Stealth Dark Theme */
+[data-theme="stealth"] {
+  color-scheme: dark;
+  --background: oklch(0.1 0.01 250);
+  --foreground: oklch(0.9 0.02 250);
+  --card: oklch(0.14 0.01 250);
+  --card-foreground: oklch(0.9 0.02 250);
+  --popover: oklch(0.14 0.01 250);
+  --popover-foreground: oklch(0.9 0.02 250);
+  --primary: oklch(0.75 0.16 160);
+  --primary-foreground: oklch(0.1 0.01 250);
+  --secondary: oklch(0.2 0.02 250);
+  --secondary-foreground: oklch(0.9 0.02 250);
+  --muted: oklch(0.18 0.02 250);
+  --muted-foreground: oklch(0.6 0.02 250);
+  --accent: oklch(0.22 0.02 250);
+  --accent-foreground: oklch(0.92 0.02 250);
+  --destructive: oklch(0.68 0.18 25);
+  --border: oklch(0.25 0.02 250);
+  --input: oklch(0.24 0.02 250);
+  --ring: oklch(0.75 0.16 160);
+  --chart-3: oklch(0.78 0.15 80);
+}
+
+* { @apply border-border outline-ring/50; }
+body { @apply bg-background text-foreground font-sans relative overflow-x-hidden; }
+button, input { font: inherit; }
+::selection { background: color-mix(in oklab, var(--primary) 40%, transparent); color: var(--primary-foreground); }
+
+/* CRT Scanline Overlay */
+.crt-overlay::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Glow Text & Borders */
+.glow-text {
+  text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+}
+
+.border-glow {
+  box-shadow: 0 0 15px color-mix(in oklab, var(--primary) 30%, transparent);
+}
+
+/* Custom scrollbar for terminal */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--primary) 40%, transparent);
+  border-radius: 4px;
+}
