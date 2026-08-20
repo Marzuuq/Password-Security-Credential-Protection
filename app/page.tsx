@@ -16,7 +16,6 @@ import {
   Terminal as TerminalIcon,
   Volume2,
   VolumeX,
-  Tv,
   Binary,
   Radio,
   Cpu,
@@ -36,7 +35,7 @@ import { MatrixBackground } from '@/components/matrix-background'
 import { TerminalConsole } from '@/components/terminal-console'
 
 type Tab = 'overview' | 'checker' | 'terminal' | 'policies'
-type ThemeOption = 'matrix' | 'cyber' | 'red-alert' | 'stealth'
+type ThemeOption = 'light' | 'stealth'
 
 const rules = [
   'Minimum 12 characters length',
@@ -61,8 +60,7 @@ export default function Page() {
   const [mobile, setMobile] = useState(false)
 
   // Hacker Theme Controls
-  const [theme, setTheme] = useState<ThemeOption>('matrix')
-  const [crtEnabled, setCrtEnabled] = useState(true)
+  const [theme, setTheme] = useState<ThemeOption>('light')
   const [matrixEnabled, setMatrixEnabled] = useState(true)
   const [isAudioMuted, setIsAudioMuted] = useState(false)
 
@@ -110,9 +108,9 @@ export default function Page() {
   ] as const
 
   return (
-    <main className={`min-h-screen bg-background text-foreground ${crtEnabled ? 'crt-overlay' : ''}`} data-theme={theme}>
+    <main className="min-h-screen bg-background text-foreground" data-theme={theme}>
       {/* Matrix Digital Rain Canvas */}
-      <MatrixBackground theme={theme} active={matrixEnabled} opacity={theme === 'matrix' ? 0.35 : 0.25} />
+      <MatrixBackground theme={theme} active={matrixEnabled} opacity={theme === 'light' ? 0.2 : 0.25} />
 
       <div className="flex min-h-screen relative z-10">
         {/* Sidebar Navigation */}
@@ -163,19 +161,17 @@ export default function Page() {
             <div className="flex items-center justify-between text-xs text-primary font-bold">
               <span className="flex items-center gap-1.5"><Sparkles className="size-3.5" /> THEME PRESET</span>
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  ['matrix', 'Matrix', 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'],
-                  ['cyber', 'Cyber', 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'],
-                  ['red-alert', 'Alert', 'bg-red-500/20 text-red-400 border-red-500/40'],
-                  ['stealth', 'Stealth', 'bg-emerald-900/20 text-emerald-300 border-emerald-800/40']
+                  ['light', 'Light', 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]'],
+                  ['stealth', 'Stealth', 'bg-emerald-900/30 text-emerald-400 border-emerald-500/50']
                 ] as const
               ).map(([id, label, colorCls]) => (
                 <button
                   key={id}
                   onClick={() => { setTheme(id); hackerAudio.playKeypress() }}
-                  className={`px-2 py-1.5 text-[11px] rounded border text-center transition-all ${
+                  className={`px-2.5 py-2 text-xs rounded-lg border text-center transition-all ${
                     theme === id ? `${colorCls} font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]` : 'border-border/60 text-muted-foreground hover:bg-muted'
                   }`}
                 >
@@ -185,16 +181,6 @@ export default function Page() {
             </div>
 
             <div className="pt-2 border-t border-border/40 space-y-2">
-              <button
-                onClick={() => setCrtEnabled(!crtEnabled)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] rounded border ${
-                  crtEnabled ? 'border-primary/50 text-primary bg-primary/10' : 'border-border text-muted-foreground'
-                }`}
-              >
-                <span className="flex items-center gap-1.5"><Tv className="size-3.5" /> CRT Scanlines</span>
-                <span>{crtEnabled ? 'ON' : 'OFF'}</span>
-              </button>
-
               <button
                 onClick={() => setMatrixEnabled(!matrixEnabled)}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] rounded border ${

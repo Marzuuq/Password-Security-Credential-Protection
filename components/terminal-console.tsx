@@ -13,7 +13,7 @@ interface HistoryItem {
 }
 
 interface TerminalConsoleProps {
-  onThemeChange?: (theme: 'matrix' | 'cyber' | 'red-alert' | 'stealth') => void
+  onThemeChange?: (theme: 'light' | 'stealth') => void
   currentTheme?: string
 }
 
@@ -27,7 +27,7 @@ const ASCII_LOGO = `
   [HACKER TERMINAL v3.6.0 - UNRESTRICTED SHELL ACCESS]
 `
 
-export function TerminalConsole({ onThemeChange, currentTheme = 'matrix' }: TerminalConsoleProps) {
+export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: TerminalConsoleProps) {
   const [input, setInput] = useState('')
   const [history, setHistory] = useState<HistoryItem[]>([
     {
@@ -72,7 +72,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'matrix' }: Term
               <div><span className="text-emerald-400 font-bold">cracktime &lt;password&gt;</span> : Calculate GPU brute-force crack time</div>
               <div><span className="text-emerald-400 font-bold">entropy &lt;password&gt;</span> : Output Shannon entropy bit calculation</div>
               <div><span className="text-emerald-400 font-bold">hash &lt;text&gt;</span> : Generate simulated MD5 & SHA-256 digests</div>
-              <div><span className="text-emerald-400 font-bold">theme &lt;matrix|cyber|red-alert|stealth&gt;</span> : Switch terminal theme</div>
+              <div><span className="text-emerald-400 font-bold">theme &lt;light|stealth&gt;</span> : Switch terminal theme</div>
               <div><span className="text-emerald-400 font-bold">sound</span> : Toggle audio synth effect clicks</div>
               <div><span className="text-emerald-400 font-bold">clear</span> : Wipe terminal screen output</div>
               <div><span className="text-emerald-400 font-bold">matrix</span> : Toggle background matrix digital rain</div>
@@ -166,11 +166,11 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'matrix' }: Term
         break
 
       case 'theme':
-        if (['matrix', 'cyber', 'red-alert', 'stealth'].includes(args.toLowerCase())) {
+        if (['light', 'stealth'].includes(args.toLowerCase())) {
           onThemeChange?.(args.toLowerCase() as any)
           outputNode = <p className="text-emerald-400 text-xs font-mono">✔ Switched active theme preset to: <span className="font-bold text-primary">{args}</span></p>
         } else {
-          outputNode = <p className="text-destructive text-xs font-mono">Invalid theme option. Valid themes: matrix, cyber, red-alert, stealth</p>
+          outputNode = <p className="text-destructive text-xs font-mono">Invalid theme option. Valid themes: light, stealth</p>
         }
         break
 

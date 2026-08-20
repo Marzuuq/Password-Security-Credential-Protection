@@ -3,12 +3,12 @@
 import { useEffect, useRef } from 'react'
 
 interface MatrixProps {
-  theme?: 'matrix' | 'cyber' | 'red-alert' | 'stealth'
+  theme?: 'light' | 'stealth'
   active?: boolean
   opacity?: number
 }
 
-export function MatrixBackground({ theme = 'matrix', active = true, opacity = 0.4 }: MatrixProps) {
+export function MatrixBackground({ theme = 'light', active = true, opacity = 0.4 }: MatrixProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => {
@@ -35,23 +35,17 @@ export function MatrixBackground({ theme = 'matrix', active = true, opacity = 0.
     const columns = Math.ceil(canvas.width / fontSize)
     const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -100))
 
-    let colorPrimary = '#00ff66'
-    let colorSecondary = '#003311'
+    let colorPrimary = '#10b981'
+    let colorSecondary = '#064e3b'
 
-    if (theme === 'cyber') {
-      colorPrimary = '#00f3ff'
-      colorSecondary = '#002b33'
-    } else if (theme === 'red-alert') {
-      colorPrimary = '#ff0055'
-      colorSecondary = '#330011'
-    } else if (theme === 'stealth') {
-      colorPrimary = '#10b981'
-      colorSecondary = '#064e3b'
+    if (theme === 'light') {
+      colorPrimary = '#059669'
+      colorSecondary = '#065f46'
     }
 
     const draw = () => {
       // Semi-transparent fade background to leave trailing ghost paths
-      ctx.fillStyle = 'rgba(5, 8, 7, 0.08)'
+      ctx.fillStyle = theme === 'light' ? 'rgba(248, 250, 252, 0.14)' : 'rgba(5, 8, 7, 0.08)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       ctx.font = `${fontSize}px monospace`
@@ -61,9 +55,9 @@ export function MatrixBackground({ theme = 'matrix', active = true, opacity = 0.
         const x = i * fontSize
         const y = drops[i] * fontSize
 
-        // Head character is glowing bright white/accent
+        // Head character is glowing bright white (or dark slate for light mode)
         if (Math.random() > 0.9) {
-          ctx.fillStyle = '#ffffff'
+          ctx.fillStyle = theme === 'light' ? '#0f172a' : '#ffffff'
         } else {
           ctx.fillStyle = colorPrimary
         }
