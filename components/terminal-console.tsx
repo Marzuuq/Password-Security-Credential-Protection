@@ -1,9 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { analyzePassword } from '@/lib/password-security'
+import {
+  analyzePassword,
+  generateDicewarePassphrase,
+  ANTI_PATTERNS
+} from '@/lib/password-security'
 import { hackerAudio } from '@/lib/hacker-audio'
-import { Terminal, Send, Trash2, Cpu, ShieldAlert } from 'lucide-react'
+import { Terminal, Send, Trash2, Cpu, ShieldAlert, KeyRound, Lock, Sparkles, ShieldCheck } from 'lucide-react'
 
 interface HistoryItem {
   id: string
@@ -24,7 +28,7 @@ const ASCII_LOGO = `
   ██╔═══╝ ██╔══██║╚════██║╚════██║██║   ██║██╔══██╗
   ██║     ██║  ██║███████║███████║╚██████╔╝██║  ██║
   ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝
-  [HACKER TERMINAL v3.6.0 - UNRESTRICTED SHELL ACCESS]
+  [HACKER TERMINAL v3.8.0 - ZERO-STORAGE SHELL ACCESS]
 `
 
 export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: TerminalConsoleProps) {
@@ -32,12 +36,13 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
   const [history, setHistory] = useState<HistoryItem[]>([
     {
       id: 'welcome',
-      command: 'sys.init --verbose',
+      command: 'sys.init --verbose --zero-storage',
       output: (
         <div className="space-y-2 text-xs font-mono">
           <pre className="text-primary glow-text font-bold leading-none hidden sm:block">{ASCII_LOGO}</pre>
-          <p className="text-emerald-400">✔ SYSTEM INITIALIZED: Security Console Kernel v3.6.0-release</p>
-          <p className="text-muted-foreground">Type <span className="text-primary font-bold">help</span> to view available hacker commands or <span className="text-primary font-bold">eval &lt;password&gt;</span> to scan entropy.</p>
+          <p className="text-emerald-400">✔ SYSTEM INITIALIZED: Security Console Kernel v3.8.0-release</p>
+          <p className="text-cyan-400">🔒 ZERO-STORAGE ACTIVE: Evaluated 100% in browser volatile RAM.</p>
+          <p className="text-muted-foreground">Type <span className="text-primary font-bold">help</span> to view available commands, <span className="text-primary font-bold">eval &lt;password&gt;</span> to scan entropy, or <span className="text-primary font-bold">diceware</span> to generate a passphrase.</p>
         </div>
       ),
       timestamp: new Date().toLocaleTimeString()
@@ -66,16 +71,19 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
       case 'help':
         outputNode = (
           <div className="space-y-1 text-xs font-mono">
-            <p className="text-primary font-bold">Available Cyber Commands:</p>
+            <p className="text-primary font-bold">Available Cyber Shell Commands:</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-              <div><span className="text-emerald-400 font-bold">eval &lt;password&gt;</span> : Perform deep entropy & threat analysis</div>
-              <div><span className="text-emerald-400 font-bold">cracktime &lt;password&gt;</span> : Calculate GPU brute-force crack time</div>
-              <div><span className="text-emerald-400 font-bold">entropy &lt;password&gt;</span> : Output Shannon entropy bit calculation</div>
-              <div><span className="text-emerald-400 font-bold">hash &lt;text&gt;</span> : Generate simulated MD5 & SHA-256 digests</div>
-              <div><span className="text-emerald-400 font-bold">theme &lt;light|stealth&gt;</span> : Switch terminal theme</div>
-              <div><span className="text-emerald-400 font-bold">sound</span> : Toggle audio synth effect clicks</div>
+              <div><span className="text-emerald-400 font-bold">eval &lt;password&gt;</span> : Deep Shannon entropy & threat analysis</div>
+              <div><span className="text-emerald-400 font-bold">cracktime &lt;password&gt;</span> : GPU & supercomputer crack time estimate</div>
+              <div><span className="text-emerald-400 font-bold">diceware [count]</span> : Generate 3-6 word memorable passphrase</div>
+              <div><span className="text-emerald-400 font-bold">antipatterns</span> : Show top 6 dangerous weak password habits</div>
+              <div><span className="text-emerald-400 font-bold">stuffing</span> : Explain credential stuffing & password reuse risks</div>
+              <div><span className="text-emerald-400 font-bold">privacy</span> : Verify zero-knowledge RAM architecture</div>
+              <div><span className="text-emerald-400 font-bold">entropy &lt;password&gt;</span> : Shannon mathematical formula output</div>
+              <div><span className="text-emerald-400 font-bold">hash &lt;text&gt;</span> : Output MD5, SHA-256 & SHA-1 K-Anonymity digests</div>
+              <div><span className="text-emerald-400 font-bold">theme &lt;light|stealth&gt;</span> : Switch terminal theme preset</div>
+              <div><span className="text-emerald-400 font-bold">sound</span> : Toggle audio sound synthesizer</div>
               <div><span className="text-emerald-400 font-bold">clear</span> : Wipe terminal screen output</div>
-              <div><span className="text-emerald-400 font-bold">matrix</span> : Toggle background matrix digital rain</div>
             </div>
           </div>
         )
@@ -94,7 +102,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Target:</span>
                 <span className="text-foreground bg-muted/40 px-2 py-0.5 rounded">{'*'.repeat(res.length)}</span>
-                <span className="text-primary font-bold">[{res.rating}]</span>
+                <span className="font-bold" style={{ color: res.toneColor }}>[{res.rating}]</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-muted-foreground">
                 <div>Length: <span className="text-foreground font-bold">{res.length}</span></div>
@@ -103,12 +111,12 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
                 <div>Score: <span className="text-foreground font-bold">{res.strengthScore}/100</span></div>
               </div>
               <div className="text-emerald-400">
-                <p>Crack Time (100 GH/s GPU): <span className="text-foreground font-bold">{res.crackTimes.offlineGpu}</span></p>
+                <p>Crack Time (8x RTX 4090 GPU Rig): <span className="text-foreground font-bold">{res.crackTimes.offlineGpu}</span></p>
                 <p>Crack Time (Supercomputer): <span className="text-foreground font-bold">{res.crackTimes.supercomputer}</span></p>
               </div>
               {res.patternsDetected.length > 0 ? (
                 <div className="text-destructive">
-                  ⚠ Warnings: {res.patternsDetected.join(' | ')}
+                  ⚠ Threats: {res.patternsDetected.map(p => p.name).join(' | ')}
                 </div>
               ) : (
                 <div className="text-emerald-400">✔ Zero common leak patterns matched.</div>
@@ -116,6 +124,61 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
             </div>
           )
         }
+        break
+
+      case 'diceware':
+      case 'passphrase':
+        const wordCount = Math.min(6, Math.max(3, parseInt(args) || 4))
+        const phrase = generateDicewarePassphrase(wordCount, '-', false, false)
+        hackerAudio.playSuccess()
+        outputNode = (
+          <div className="space-y-1.5 text-xs font-mono border-l-2 border-emerald-500 pl-3 py-1">
+            <p className="text-emerald-400 font-bold">✨ Generated Diceware Passphrase ({wordCount} words):</p>
+            <p className="text-primary font-bold text-sm select-all tracking-wider">{phrase}</p>
+            <p className="text-muted-foreground">Length: {phrase.length} chars | Estimated Entropy: ~{Math.round(wordCount * 12.9)} bits | Memory Rating: Instant Visual Recall</p>
+          </div>
+        )
+        break
+
+      case 'antipatterns':
+      case 'patterns':
+        outputNode = (
+          <div className="space-y-2 text-xs font-mono">
+            <p className="text-primary font-bold">Top Dangerous Weak Password Anti-Patterns:</p>
+            <div className="space-y-1.5 text-muted-foreground">
+              {ANTI_PATTERNS.map((p, idx) => (
+                <div key={p.id}>
+                  <span className="text-emerald-400 font-bold">{idx + 1}. {p.title}</span> : {p.subtitle} (GPU Crack: <span className="text-destructive font-bold">{p.estimatedCrackTime}</span>)
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+        break
+
+      case 'stuffing':
+      case 'reuse':
+        outputNode = (
+          <div className="space-y-1.5 text-xs font-mono border-l-2 border-destructive pl-3 py-1">
+            <p className="text-destructive font-bold">⚠ THE CREDENTIAL STUFFING ATTACK MECHANISM:</p>
+            <p className="text-muted-foreground">1. Attackers obtain leaked email+password databases from compromised minor websites.</p>
+            <p className="text-muted-foreground">2. Automated botnets (SilverBullet/Sentry MBA) replay combos against banks, emails, cloud storage.</p>
+            <p className="text-muted-foreground">3. Reusing one password across 10 sites means 1 breach compromises all 10 accounts.</p>
+            <p className="text-emerald-400 font-bold">✔ Solution: Use a unique 16+ char passphrase per service in a password manager.</p>
+          </div>
+        )
+        break
+
+      case 'privacy':
+      case 'zerostorage':
+        outputNode = (
+          <div className="space-y-1 text-xs font-mono border-l-2 border-cyan-400 pl-3 py-1">
+            <p className="text-cyan-400 font-bold">🔒 ZERO-KNOWLEDGE & ZERO-STORAGE VERIFICATION:</p>
+            <p className="text-muted-foreground">• In-Memory Only: Evaluated strictly in local JavaScript volatile memory.</p>
+            <p className="text-muted-foreground">• Zero Transmission: 0 HTTP POST/GET requests dispatched across the network.</p>
+            <p className="text-muted-foreground">• K-Anonymity Model: Explains how 5-character SHA-1 hash prefixes check leaks anonymously.</p>
+          </div>
+        )
         break
 
       case 'cracktime':
@@ -127,9 +190,9 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
             <div className="space-y-1 text-xs font-mono text-emerald-400">
               <p className="text-primary font-bold">⚡ BRUTE FORCE TIME-TO-CRACK ESTIMATOR:</p>
               <p>• Throttled Online (10 req/s): <span className="text-foreground">{res.crackTimes.onlineThrottled}</span></p>
-              <p>• Fast Online (1k req/s): <span className="text-foreground">{res.crackTimes.onlineFast}</span></p>
-              <p>• Offline Rig (100 Billion H/s): <span className="text-foreground">{res.crackTimes.offlineGpu}</span></p>
-              <p>• Quantum/Supercomputer Cluster: <span className="text-foreground">{res.crackTimes.supercomputer}</span></p>
+              <p>• Fast Online Botnet (1,000 req/s): <span className="text-foreground">{res.crackTimes.onlineFast}</span></p>
+              <p>• 8x RTX 4090 GPU Rig (100 Billion H/s): <span className="text-foreground font-bold">{res.crackTimes.offlineGpu}</span></p>
+              <p>• Quantum/Supercomputer Cluster: <span className="text-foreground font-bold">{res.crackTimes.supercomputer}</span></p>
             </div>
           )
         }
@@ -160,6 +223,8 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
             <div className="space-y-1 text-xs font-mono text-muted-foreground">
               <p>MD5: <span className="text-primary select-all">{res.hashSimulations.md5}</span></p>
               <p>SHA-256: <span className="text-primary select-all">{res.hashSimulations.sha256}</span></p>
+              <p>SHA-1 (K-Anonymity): <span className="text-emerald-400 select-all">{res.hashSimulations.sha1}</span></p>
+              <p>K-Anonymity 5-char Prefix: <span className="text-cyan-400 font-bold">{res.hashSimulations.kAnonymityPrefix}</span></p>
             </div>
           )
         }
@@ -204,7 +269,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
   }
 
   return (
-    <div className="flex flex-col h-[520px] rounded-xl border border-primary/40 bg-card/90 shadow-[0_0_20px_rgba(0,255,102,0.1)] backdrop-blur-md overflow-hidden font-mono">
+    <div className="flex flex-col h-[560px] rounded-xl border border-primary/40 bg-card/90 shadow-[0_0_20px_rgba(0,255,102,0.1)] backdrop-blur-md overflow-hidden font-mono">
       {/* Terminal Titlebar */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/60 border-b border-primary/30">
         <div className="flex items-center gap-2">
@@ -219,8 +284,8 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
         </div>
 
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-          <span className="hidden sm:inline-flex items-center gap-1">
-            <Cpu className="size-3 text-primary animate-pulse" /> ENCRYPTION: ACTIVE
+          <span className="hidden sm:inline-flex items-center gap-1 text-cyan-400">
+            <ShieldCheck className="size-3" /> ZERO-STORAGE MODE
           </span>
           <button
             onClick={() => { setHistory([]); hackerAudio.playKeypress() }}
@@ -260,7 +325,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type 'help' or 'eval mypassword'..."
+          placeholder="Type 'help', 'eval mypassword', 'diceware', or 'antipatterns'..."
           className="flex-1 bg-transparent text-xs font-mono text-foreground outline-none placeholder:text-muted-foreground/60"
           autoFocus
         />

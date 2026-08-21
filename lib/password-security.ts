@@ -1,15 +1,16 @@
 /**
  * Password Security & Threat Evaluation Engine
  *
- * Enterprise-grade cryptographic analysis, entropy estimation (NIST SP 800-63B aligned),
+ * Enterprise-grade cryptographic analysis, Shannon entropy estimation (NIST SP 800-63B aligned),
  * breach dictionary matching, leetspeak normalization, keyboard spatial pattern detection,
- * CSPRNG password generation, and real MD5 / SHA-256 cryptographic digests.
+ * CSPRNG & Diceware passphrase generation, and local MD5 / SHA-256 / SHA-1 cryptographic digests.
  */
 
 export interface PasswordAnalysis {
   password: string
   length: number
   entropyBits: number
+  rawEntropy: number
   poolSize: number
   strengthScore: number // 0 to 100
   rating: 'CRITICAL' | 'WEAK' | 'MODERATE' | 'STRONG' | 'UNBREAKABLE'
@@ -27,7 +28,12 @@ export interface PasswordAnalysis {
     offlineGpu: string
     supercomputer: string
   }
-  patternsDetected: string[]
+  patternsDetected: {
+    category: 'dictionary' | 'spatial' | 'sequential' | 'repetition' | 'date' | 'diversity' | 'predictable'
+    name: string
+    description: string
+    deduction: number
+  }[]
   checks: {
     min12: boolean
     casing: boolean
@@ -39,14 +45,18 @@ export interface PasswordAnalysis {
   hashSimulations: {
     md5: string
     sha256: string
+    sha1: string
+    kAnonymityPrefix: string
+    kAnonymitySuffix: string
   }
+  improvementTips: string[]
 }
 
 // ============================================================================
 // Cryptographically Secure Pseudo-Random Number Generator (CSPRNG)
 // ============================================================================
 
-function getRandomInt(max: number): number {
+export function getRandomInt(max: number): number {
   if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
     const array = new Uint32Array(1)
     globalThis.crypto.getRandomValues(array)
@@ -88,7 +98,68 @@ export function generateStrongPassword(length = 16): string {
 }
 
 // ============================================================================
-// Standard Cryptographic Hashing Algorithms (MD5 & SHA-256)
+// Diceware Memorable Passphrase Generator (EFF-aligned)
+// ============================================================================
+
+export const DICEWARE_WORDLIST = [
+  'anchor', 'apple', 'arcade', 'armor', 'arrow', 'atlas', 'autumn', 'avalanche',
+  'badger', 'bamboo', 'beacon', 'breeze', 'bridge', 'bubble', 'bullet', 'butter',
+  'cactus', 'camera', 'candle', 'canyon', 'canvas', 'carpet', 'castle', 'cedar',
+  'cipher', 'cloud', 'clover', 'cobalt', 'comet', 'copper', 'coral', 'crater',
+  'crypto', 'crystal', 'curtain', 'cyborg', 'dagger', 'dancer', 'dawn', 'desert',
+  'diamond', 'dolphin', 'dragon', 'drift', 'eagle', 'echo', 'eclipse', 'ember',
+  'emerald', 'engine', 'falcon', 'feather', 'ferret', 'flame', 'forest', 'fossil',
+  'galaxy', 'galley', 'garden', 'geyser', 'glacier', 'glider', 'glow', 'granite',
+  'grove', 'guitar', 'harbor', 'hawk', 'helium', 'helmet', 'horizon', 'hybrid',
+  'iceberg', 'iguana', 'impact', 'island', 'ivory', 'jaguar', 'javelin', 'jungle',
+  'jupiter', 'kayak', 'kepler', 'kernel', 'kinetic', 'knight', 'lagoon', 'lantern',
+  'laser', 'lava', 'legacy', 'lemon', 'leopard', 'lightning', 'lizard', 'lotus',
+  'lunar', 'magnet', 'magma', 'mantis', 'marble', 'matrix', 'meadow', 'meteor',
+  'mirage', 'monarch', 'mosaic', 'nebula', 'neon', 'ninja', 'nitrogen', 'nomad',
+  'nova', 'nucleus', 'oasis', 'obsidian', 'ocean', 'octopus', 'olympus', 'onyx',
+  'orbit', 'orchid', 'oxygen', 'panther', 'pegasus', 'phantom', 'phoenix', 'photon',
+  'pillar', 'planet', 'plasma', 'polar', 'portal', 'prism', 'pulse', 'pyramid',
+  'quantum', 'quasar', 'radar', 'radiant', 'rainbow', 'ranger', 'raven', 'reef',
+  'ripple', 'river', 'rocket', 'rogue', 'ruby', 'safari', 'sahara', 'sailor',
+  'sapphire', 'saturn', 'scanner', 'scepter', 'shadow', 'shield', 'siren', 'solar',
+  'spectrum', 'spider', 'spiral', 'spring', 'static', 'stellar', 'storm', 'stride',
+  'summit', 'sunset', 'syntax', 'talisman', 'target', 'temple', 'thunder', 'tiger',
+  'timber', 'titan', 'topaz', 'tornado', 'tower', 'tsunami', 'tunnel', 'twilight',
+  'typhoon', 'unicorn', 'uranium', 'valley', 'vapor', 'vector', 'velvet', 'vessel',
+  'viper', 'vortex', 'voyage', 'vulcan', 'walrus', 'warrior', 'wave', 'whisper',
+  'willow', 'winter', 'wizard', 'wolf', 'zenith', 'zephyr', 'zero', 'zodiac'
+]
+
+/**
+ * Generates a Diceware memorable passphrase (e.g. "correct-horse-battery-staple").
+ * High entropy with extreme human memorability.
+ */
+export function generateDicewarePassphrase(
+  wordCount = 4,
+  separator = '-',
+  capitalize = false,
+  includeNumber = false
+): string {
+  const chosenWords: string[] = []
+
+  for (let i = 0; i < wordCount; i++) {
+    let word = DICEWARE_WORDLIST[getRandomInt(DICEWARE_WORDLIST.length)]
+    if (capitalize) {
+      word = word.charAt(0).toUpperCase() + word.slice(1)
+    }
+    chosenWords.push(word)
+  }
+
+  let result = chosenWords.join(separator)
+  if (includeNumber) {
+    result += `${separator}${getRandomInt(900) + 100}`
+  }
+
+  return result
+}
+
+// ============================================================================
+// Standard Cryptographic Hashing Algorithms (MD5, SHA-256, SHA-1)
 // ============================================================================
 
 /**
@@ -262,7 +333,6 @@ export function calculateSHA256(ascii: string): string {
   let result = ''
 
   const words: number[] = []
-
   const hash: number[] = []
   const k: number[] = []
 
@@ -365,6 +435,104 @@ export function calculateSHA256(ascii: string): string {
   return result
 }
 
+/**
+ * Standard SHA-1 Digest (Pure TypeScript for K-Anonymity breach checking simulation)
+ */
+export function calculateSHA1(input: string): string {
+  function rol(num: number, cnt: number): number {
+    return (num << cnt) | (num >>> (32 - cnt))
+  }
+
+  const utf8: number[] = []
+  for (let i = 0; i < input.length; i++) {
+    let code = input.charCodeAt(i)
+    if (code < 0x80) {
+      utf8.push(code)
+    } else if (code < 0x800) {
+      utf8.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f))
+    } else if (code < 0xd800 || code >= 0xe000) {
+      utf8.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f))
+    } else {
+      i++
+      code = 0x10000 + (((code & 0x3ff) << 10) | (input.charCodeAt(i) & 0x3ff))
+      utf8.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f))
+    }
+  }
+
+  const bitLength = utf8.length * 8
+  utf8.push(0x80)
+  while (utf8.length % 64 !== 56) {
+    utf8.push(0)
+  }
+  for (let i = 7; i >= 0; i--) {
+    utf8.push((bitLength >>> (i * 8)) & 0xff)
+  }
+
+  const words: number[] = []
+  for (let i = 0; i < utf8.length; i += 4) {
+    words.push((utf8[i] << 24) | (utf8[i + 1] << 16) | (utf8[i + 2] << 8) | utf8[i + 3])
+  }
+
+  let h0 = 0x67452301
+  let h1 = 0xefcdab89
+  let h2 = 0x98badcfe
+  let h3 = 0x10325476
+  let h4 = 0xc3d2e1f0
+
+  const w = new Array(80)
+
+  for (let i = 0; i < words.length; i += 16) {
+    for (let j = 0; j < 16; j++) {
+      w[j] = words[i + j]
+    }
+    for (let j = 16; j < 80; j++) {
+      w[j] = rol(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1)
+    }
+
+    let a = h0
+    let b = h1
+    let c = h2
+    let d = h3
+    let e = h4
+
+    for (let j = 0; j < 80; j++) {
+      let f = 0
+      let k = 0
+      if (j < 20) {
+        f = (b & c) | (~b & d)
+        k = 0x5a827999
+      } else if (j < 40) {
+        f = b ^ c ^ d
+        k = 0x6ed9eba1
+      } else if (j < 60) {
+        f = (b & c) | (b & d) | (c & d)
+        k = 0x8f1bbcdc
+      } else {
+        f = b ^ c ^ d
+        k = 0xca62c1d6
+      }
+
+      const temp = (rol(a, 5) + f + e + k + w[j]) | 0
+      e = d
+      d = c
+      c = rol(b, 30)
+      b = a
+      a = temp
+    }
+
+    h0 = (h0 + a) | 0
+    h1 = (h1 + b) | 0
+    h2 = (h2 + c) | 0
+    h3 = (h3 + d) | 0
+    h4 = (h4 + e) | 0
+  }
+
+  return [h0, h1, h2, h3, h4]
+    .map(x => (x >>> 0).toString(16).padStart(8, '0'))
+    .join('')
+    .toUpperCase()
+}
+
 // ============================================================================
 // Time Formatting & Search Space Estimation
 // ============================================================================
@@ -377,27 +545,31 @@ export function formatTime(seconds: number): string {
   if (seconds < 86400) return `${Math.round(seconds / 3600)} hours`
   if (seconds < 31536000) return `${Math.round(seconds / 86400)} days`
   if (seconds < 31536000 * 100) return `${(seconds / 31536000).toFixed(1)} years`
-  if (seconds < 31536000 * 1000000) return `${(seconds / (31536000 * 1000)).toFixed(1)}k years`
-  if (seconds < 31536000 * 1000000000) return `${(seconds / (31536000 * 1000000)).toFixed(1)}M years`
-  return 'Centuries (Uncrackable)'
+  if (seconds < 31536000 * 1000) return `${(seconds / (31536000 * 1000)).toFixed(1)} thousand years`
+  if (seconds < 31536000 * 1000000) return `${(seconds / (31536000 * 1000000)).toFixed(1)} million years`
+  if (seconds < 31536000 * 1000000000) return `${(seconds / (31536000 * 1000000000)).toFixed(1)} billion years`
+  return 'Trillions of Years (Uncrackable)'
 }
 
 // ============================================================================
 // Dictionary, Spatial, & Sequential Attack Vector Lists
 // ============================================================================
 
-const COMMON_BREACH_PATTERNS = [
+export const COMMON_BREACH_PATTERNS = [
   'password', '123456', '12345678', '123456789', 'qwerty', 'admin',
   'welcome', 'letmein', 'monkey', 'iloveyou', 'sunshine', 'princess',
   'dragon', 'trustno1', 'p@ssword', 'admin123', 'pass123', 'abc123',
   'football', 'charlie', 'master', 'superman', 'shadow', 'baseball',
   'michael', 'jordan', 'harley', 'ranger', 'jennifer', 'cookie',
-  'batman', 'matrix', 'cyber', 'security', 'system', 'root', 'login'
+  'batman', 'matrix', 'cyber', 'security', 'system', 'root', 'login',
+  'summer', 'winter', 'spring', 'autumn', 'secret', 'hunter2', 'trust',
+  'testing', 'access', 'default', 'oracle', 'cisco', 'guest', 'starwars'
 ]
 
-const KEYBOARD_SPATIAL_WALKS = [
+export const KEYBOARD_SPATIAL_WALKS = [
   'qwerty', 'asdfgh', 'zxcvbn', '123456', '789654', 'qazwsx',
-  'poiuyt', 'lkjhgf', 'mnbvcxz', '1qaz2wsx', '098765'
+  'poiuyt', 'lkjhgf', 'mnbvcxz', '1qaz2wsx', '098765', 'qwer',
+  'asdf', 'zxcv', '1234', '4321', '0987', 'qaz', 'wsx', 'edc'
 ]
 
 const LEET_MAP: Record<string, string> = {
@@ -410,10 +582,11 @@ const LEET_MAP: Record<string, string> = {
   '0': 'o',
   '$': 's',
   '5': 's',
-  '7': 't'
+  '7': 't',
+  '+': 't'
 }
 
-function normalizeLeetspeak(str: string): string {
+export function normalizeLeetspeak(str: string): string {
   return str
     .toLowerCase()
     .split('')
@@ -427,20 +600,22 @@ function normalizeLeetspeak(str: string): string {
 
 export function analyzePassword(password: string): PasswordAnalysis {
   if (!password) {
+    const defaultSha1 = calculateSHA1('')
     return {
       password: '',
       length: 0,
       entropyBits: 0,
+      rawEntropy: 0,
       poolSize: 0,
       strengthScore: 0,
       rating: 'CRITICAL',
       toneColor: '#ff0055',
       characterBreakdown: { lowercase: 0, uppercase: 0, numbers: 0, symbols: 0, space: 0 },
       crackTimes: {
-        onlineThrottled: 'Instant',
-        onlineFast: 'Instant',
-        offlineGpu: 'Instant',
-        supercomputer: 'Instant'
+        onlineThrottled: 'Instant (< 1 ms)',
+        onlineFast: 'Instant (< 1 ms)',
+        offlineGpu: 'Instant (< 1 ms)',
+        supercomputer: 'Instant (< 1 ms)'
       },
       patternsDetected: [],
       checks: {
@@ -453,8 +628,12 @@ export function analyzePassword(password: string): PasswordAnalysis {
       },
       hashSimulations: {
         md5: calculateMD5(''),
-        sha256: calculateSHA256('')
-      }
+        sha256: calculateSHA256(''),
+        sha1: defaultSha1,
+        kAnonymityPrefix: defaultSha1.slice(0, 5),
+        kAnonymitySuffix: defaultSha1.slice(5)
+      },
+      improvementTips: ['Enter a password or generate a multi-word Diceware passphrase to begin.']
     }
   }
 
@@ -478,10 +657,10 @@ export function analyzePassword(password: string): PasswordAnalysis {
   if (unicodeCount > 0) poolSize += 64
 
   // Raw Shannon entropy calculation: L * log2(poolSize)
-  const rawEntropy = length * Math.log2(Math.max(poolSize, 1))
+  const rawEntropy = Math.round(length * Math.log2(Math.max(poolSize, 1)))
 
   // Threat Vector & Structural Pattern Detection
-  const patternsDetected: string[] = []
+  const patternsDetected: PasswordAnalysis['patternsDetected'] = []
   let entropyDeductions = 0
 
   const lowerPass = password.toLowerCase()
@@ -490,47 +669,98 @@ export function analyzePassword(password: string): PasswordAnalysis {
   // 1. Dictionary Breach Matching
   COMMON_BREACH_PATTERNS.forEach(pat => {
     if (lowerPass.includes(pat)) {
-      patternsDetected.push(`Known breached dictionary word: "${pat}"`)
-      entropyDeductions += 15
+      patternsDetected.push({
+        category: 'dictionary',
+        name: `Breached Word: "${pat}"`,
+        description: `Found in top RockYou/HIBP breach dictionaries. Dictionary attacks crack this instantly.`,
+        deduction: 18
+      })
+      entropyDeductions += 18
     } else if (leetPass.includes(pat) && leetPass !== lowerPass) {
-      patternsDetected.push(`Obfuscated leetspeak pattern: "${pat}"`)
-      entropyDeductions += 12
+      patternsDetected.push({
+        category: 'dictionary',
+        name: `Obfuscated Leetspeak: "${pat}"`,
+        description: `Adversary rule engines (Hashcat/John) replace @->a, 0->o, 1->i in microseconds.`,
+        deduction: 14
+      })
+      entropyDeductions += 14
     }
   })
 
   // 2. Keyboard Spatial Walks
   KEYBOARD_SPATIAL_WALKS.forEach(walk => {
     if (lowerPass.includes(walk)) {
-      patternsDetected.push(`Predictable keyboard walk detected: "${walk}"`)
-      entropyDeductions += 12
+      patternsDetected.push({
+        category: 'spatial',
+        name: `Keyboard Spatial Walk: "${walk}"`,
+        description: `Adjacent key patterns (QWERTY/numpad) are tested first by modern cracking tools.`,
+        deduction: 14
+      })
+      entropyDeductions += 14
     }
   })
 
   // 3. Sequential Character Runs (e.g. abcd, 1234, zyxw)
   if (/(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(password)) {
-    patternsDetected.push('Sequential character run (e.g., 123, abc)')
-    entropyDeductions += 8
+    patternsDetected.push({
+      category: 'sequential',
+      name: 'Sequential Character Run',
+      description: 'Sequential ascending numbers or alphabet letters drastically reduce effective entropy.',
+      deduction: 10
+    })
+    entropyDeductions += 10
   }
 
   // 4. Repeated Character Sequences (e.g. aaa, 1111, $$$)
   if (/(.)\1{2,}/.test(password)) {
-    patternsDetected.push('Repeated character sequence detected')
-    entropyDeductions += 10
+    patternsDetected.push({
+      category: 'repetition',
+      name: 'Repeated Characters',
+      description: 'Consecutive identical characters add almost zero real cryptographic entropy.',
+      deduction: 12
+    })
+    entropyDeductions += 12
   }
 
   // 5. Date / Year Pattern
   if (/(19[5-9]\d|20[0-3]\d)/.test(password)) {
-    patternsDetected.push('Contains 4-digit calendar year (1950-2039)')
-    entropyDeductions += 8
+    patternsDetected.push({
+      category: 'date',
+      name: 'Calendar Year Pattern',
+      description: 'Contains a 4-digit calendar year (1950-2039), a high-priority target in brute-force masks.',
+      deduction: 10
+    })
+    entropyDeductions += 10
   }
 
-  // 6. Low Character Diversity
-  if (/^[a-zA-Z]+$/.test(password)) {
-    patternsDetected.push('Only letters used (No numbers or symbols)')
-    entropyDeductions += 5
+  // 6. Base Word + Capitalized First + Number + Symbol (e.g. Summer2024!)
+  if (/^[A-Z][a-z]+[0-9]+[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]$/.test(password)) {
+    patternsDetected.push({
+      category: 'predictable',
+      name: 'Predictable "Base + Year + Symbol" Pattern',
+      description: 'Matches the most common corporate password format (Capital + Word + Number + Symbol).',
+      deduction: 15
+    })
+    entropyDeductions += 15
+  }
+
+  // 7. Low Character Diversity
+  if (/^[a-zA-Z]+$/.test(password) && length < 16) {
+    patternsDetected.push({
+      category: 'diversity',
+      name: 'Letters Only (Short Length)',
+      description: 'Only letters used without sufficient length. Expand character set or make it a multi-word passphrase.',
+      deduction: 8
+    })
+    entropyDeductions += 8
   } else if (/^\d+$/.test(password)) {
-    patternsDetected.push('Numeric PIN only (High vulnerability)')
-    entropyDeductions += 20
+    patternsDetected.push({
+      category: 'diversity',
+      name: 'Numeric PIN Only',
+      description: 'Search space is restricted to only 10 digits per position. Trivial for GPU cracking.',
+      deduction: 25
+    })
+    entropyDeductions += 25
   }
 
   // Effective Information Entropy
@@ -540,10 +770,10 @@ export function analyzePassword(password: string): PasswordAnalysis {
   const totalCombinations = Math.pow(2, Math.min(effectiveEntropy, 128))
   const avgAttempts = totalCombinations / 2
 
-  const onlineThrottled = formatTime(avgAttempts / 10) // 10 guesses / sec
-  const onlineFast = formatTime(avgAttempts / 1000) // 1,000 guesses / sec
-  const offlineGpu = formatTime(avgAttempts / 100000000000) // 100 Billion H/s
-  const supercomputer = formatTime(avgAttempts / 10000000000000) // 10 Trillion H/s
+  const onlineThrottled = formatTime(avgAttempts / 10) // 10 guesses / sec (Rate limited)
+  const onlineFast = formatTime(avgAttempts / 1000) // 1,000 guesses / sec (Botnet stuffing)
+  const offlineGpu = formatTime(avgAttempts / 100000000000) // 100 Billion H/s (8x RTX 4090 Hashcat rig)
+  const supercomputer = formatTime(avgAttempts / 10000000000000) // 10 Trillion H/s (Distributed cluster)
 
   // Policy Security Checks
   const checks = {
@@ -560,7 +790,7 @@ export function analyzePassword(password: string): PasswordAnalysis {
   // Strength score calculation (0 - 100)
   let strengthScore = Math.min(100, Math.round((effectiveEntropy / 80) * 70 + (passedChecksCount / 6) * 30))
   if (patternsDetected.length > 0) {
-    strengthScore = Math.max(5, strengthScore - patternsDetected.length * 15)
+    strengthScore = Math.max(5, strengthScore - patternsDetected.length * 12)
   }
 
   // Security Rating & Palette Tone
@@ -573,22 +803,48 @@ export function analyzePassword(password: string): PasswordAnalysis {
   } else if (strengthScore >= 65) {
     rating = 'STRONG'
     toneColor = '#00f3ff'
-  } else if (strengthScore >= 40) {
+  } else if (strengthScore >= 45) {
     rating = 'MODERATE'
     toneColor = '#ffb700'
-  } else if (strengthScore >= 20) {
+  } else if (strengthScore >= 25) {
     rating = 'WEAK'
     toneColor = '#ff6600'
   }
 
-  // Real Cryptographic Hashes (MD5 & SHA-256)
+  // Cryptographic Hashes (MD5, SHA-256, SHA-1 for K-Anonymity)
   const md5Hash = calculateMD5(password)
   const sha256Hash = calculateSHA256(password)
+  const sha1Hash = calculateSHA1(password)
+
+  // Generate dynamic improvement tips
+  const improvementTips: string[] = []
+  if (length < 12) {
+    improvementTips.push(`Add ${12 - length} more characters to reach the recommended 12+ character baseline.`)
+  }
+  if (!checks.casing && length < 20) {
+    improvementTips.push('Mix both UPPERCASE and lowercase letters to expand the character alphabet.')
+  }
+  if (!checks.hasNumber) {
+    improvementTips.push('Include numbers (0-9) inside non-predictable positions.')
+  }
+  if (!checks.hasSymbol) {
+    improvementTips.push('Add special symbols (!@#$%^&*) to maximize combinatorial search space.')
+  }
+  if (patternsDetected.some(p => p.category === 'dictionary' || p.category === 'predictable')) {
+    improvementTips.push('Replace predictable dictionary words with a 4-word Diceware passphrase (e.g. "beacon-curtain-falcon-orbit").')
+  }
+  if (patternsDetected.some(p => p.category === 'spatial' || p.category === 'sequential')) {
+    improvementTips.push('Eliminate keyboard walks (qwerty, 1234) and sequential series.')
+  }
+  if (improvementTips.length === 0) {
+    improvementTips.push('Excellent! This password has high information entropy and resists advanced GPU dictionary/mask attacks.')
+  }
 
   return {
     password,
     length,
     entropyBits: effectiveEntropy,
+    rawEntropy,
     poolSize,
     strengthScore,
     rating,
@@ -597,6 +853,120 @@ export function analyzePassword(password: string): PasswordAnalysis {
     crackTimes: { onlineThrottled, onlineFast, offlineGpu, supercomputer },
     patternsDetected,
     checks,
-    hashSimulations: { md5: md5Hash, sha256: sha256Hash }
+    hashSimulations: {
+      md5: md5Hash,
+      sha256: sha256Hash,
+      sha1: sha1Hash,
+      kAnonymityPrefix: sha1Hash.slice(0, 5),
+      kAnonymitySuffix: sha1Hash.slice(5)
+    },
+    improvementTips
   }
 }
+
+// ============================================================================
+// Education Hub Data: Weak Patterns & Anti-Patterns Encyclopedia
+// ============================================================================
+
+export interface AntiPattern {
+  id: string
+  title: string
+  subtitle: string
+  badge: string
+  example: string
+  whyWeak: string
+  howAttackersBreakIt: string
+  betterAlternative: string
+  estimatedCrackTime: string
+}
+
+export const ANTI_PATTERNS: AntiPattern[] = [
+  {
+    id: 'base-year',
+    title: 'The "Base + Year + Symbol" Trap',
+    subtitle: 'e.g. Summer2024!, Password123!',
+    badge: 'MOST COMMON CORPORATE VULNERABILITY',
+    example: 'Autumn2024@',
+    whyWeak: 'Humans follow predictable mental heuristics when forced to include capital letters, numbers, and symbols.',
+    howAttackersBreakIt: 'Hashcat mask attacks (?u?l?l?l?l?l?l?d?d?d?d?s) crack these in under 0.05 seconds against offline NTLM / SHA-256 dumps.',
+    betterAlternative: 'Four random words joined by hyphens: "timber-quasar-lagoon-beacon"',
+    estimatedCrackTime: '< 0.05 seconds on 1 GPU'
+  },
+  {
+    id: 'leetspeak-illusion',
+    title: 'The Leetspeak Obfuscation Myth',
+    subtitle: 'e.g. P@ssw0rd, Tr0ub4dor&3, M@tr!x2023',
+    badge: 'AUTOMATED RULE TABLE TARGET',
+    example: 'P@$$w0rd2024!',
+    whyWeak: 'Replacing "a" with "@", "o" with "0", or "s" with "$" feels complex to humans, but cracking tools have pre-compiled transformation rule tables (e.g. best64.rule, dive.rule).',
+    howAttackersBreakIt: 'Rule-based dictionary attacks automatically apply all standard leetspeak permutations to billions of dictionary words in milliseconds.',
+    betterAlternative: 'Length is king: A 20-character Diceware phrase has 80+ bits of true entropy.',
+    estimatedCrackTime: 'Instant (< 1 ms)'
+  },
+  {
+    id: 'keyboard-walk',
+    title: 'Keyboard Spatial Walks',
+    subtitle: 'e.g. qwerty, 1qaz2wsx, zxcvbnm',
+    badge: 'HIGH ADJACENCY PREDICTABILITY',
+    example: 'qweasd123!@#',
+    whyWeak: 'Fingers naturally slide along neighboring keys on QWERTY or numeric keypads.',
+    howAttackersBreakIt: 'Cracking algorithms maintain adjacency graphs of physical keyboards to generate and test all spatial geometric patterns.',
+    betterAlternative: 'Use a password manager CSPRNG generator or random dice roll words.',
+    estimatedCrackTime: '0.001 seconds'
+  },
+  {
+    id: 'password-reuse',
+    title: 'The Password Reuse Domino Effect',
+    subtitle: 'Using one "strong" password everywhere',
+    badge: 'CREDENTIAL STUFFING CATALYST',
+    example: 'MyS3cur3P@ssw0rd! (used on 15 sites)',
+    whyWeak: 'No matter how strong your password is, if ONE low-security website you signed up for suffers a breach, your password is leaked in plaintext.',
+    howAttackersBreakIt: 'Attackers load breach dumps into automated tools (e.g. SilverBullet, Sentry MBA) and test your email + password across banking, email, cloud, and crypto services.',
+    betterAlternative: 'Unique password for EVERY service, stored securely in a password manager with MFA.',
+    estimatedCrackTime: '0 seconds (Already in breach DB)'
+  },
+  {
+    id: 'personal-osint',
+    title: 'Personal Identifiers (OSINT Vulnerability)',
+    subtitle: 'Names, pets, birth years, sports teams',
+    badge: 'TARGETED SPEAR-ATTACK TARGET',
+    example: 'FluffyRover2018!',
+    whyWeak: 'Social media (Instagram, Facebook, LinkedIn) makes pet names, graduation years, sports teams, and birthdays publicly discoverable.',
+    howAttackersBreakIt: 'Targeted wordlist generators (like CeWL or Cupp) scrape a target\'s public profile to build custom attack dictionaries in seconds.',
+    betterAlternative: 'Completely decoupled random words that have zero connection to personal life.',
+    estimatedCrackTime: '< 2 seconds targeted'
+  },
+  {
+    id: 'short-complexity',
+    title: 'The 8-Character Complexity Fallacy',
+    subtitle: '8 characters with complex symbols',
+    badge: 'BRUTE FORCE EXHAUSTION RISK',
+    example: 'K#9$v!L2',
+    whyWeak: 'An 8-character password from all 95 printable ASCII characters has only ~52 bits of entropy. The total search space is 95^8 = 6.6 × 10^15 combinations.',
+    howAttackersBreakIt: 'A modern 8x RTX 4090 GPU rig running at 150 GH/s exhausts all 6.6 quadrillion 8-character possibilities in approximately 12 hours.',
+    betterAlternative: '16+ character passphrase. 16 chars of full ASCII = 95^16 combinations (takes trillions of years).',
+    estimatedCrackTime: '~12 hours total exhaustion'
+  }
+]
+
+// ============================================================================
+// Credential Stuffing & Breach Simulation Types & Data
+// ============================================================================
+
+export interface StuffingTarget {
+  id: string
+  name: string
+  category: 'Banking' | 'Email / Master' | 'Cloud Storage' | 'Social Media' | 'Crypto Wallet' | 'Shopping'
+  iconName: string
+  criticality: 'CRITICAL' | 'HIGH' | 'MEDIUM'
+  protectWithMfa: boolean
+}
+
+export const STUFFING_TARGETS: StuffingTarget[] = [
+  { id: 'bank', name: 'First National Bank', category: 'Banking', iconName: 'Landmark', criticality: 'CRITICAL', protectWithMfa: true },
+  { id: 'email', name: 'Primary Google/Outlook Mail', category: 'Email / Master', iconName: 'Mail', criticality: 'CRITICAL', protectWithMfa: true },
+  { id: 'cloud', name: 'Cloud Drive (Docs & Tax Returns)', category: 'Cloud Storage', iconName: 'Cloud', criticality: 'HIGH', protectWithMfa: false },
+  { id: 'crypto', name: 'Coinbase / Crypto Exchange', category: 'Crypto Wallet', iconName: 'Coins', criticality: 'CRITICAL', protectWithMfa: true },
+  { id: 'social', name: 'Instagram & X / Twitter', category: 'Social Media', iconName: 'Share2', criticality: 'MEDIUM', protectWithMfa: false },
+  { id: 'ecommerce', name: 'Amazon / Online Retail', category: 'Shopping', iconName: 'ShoppingBag', criticality: 'HIGH', protectWithMfa: false }
+]

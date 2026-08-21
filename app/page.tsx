@@ -27,30 +27,46 @@ import {
   Info,
   Copy,
   Check,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  Sliders,
+  HelpCircle,
+  GraduationCap,
+  ArrowRight,
+  Flame,
+  Hash,
+  AlertTriangle,
+  ServerOff
 } from 'lucide-react'
-import { analyzePassword, generateStrongPassword } from '@/lib/password-security'
+import {
+  analyzePassword,
+  generateStrongPassword,
+  generateDicewarePassphrase
+} from '@/lib/password-security'
 import { hackerAudio } from '@/lib/hacker-audio'
 import { MatrixBackground } from '@/components/matrix-background'
 import { TerminalConsole } from '@/components/terminal-console'
+import { EducationAcademy } from '@/components/education-academy'
+import { ZeroStorageModal } from '@/components/zero-storage-modal'
 
-type Tab = 'overview' | 'checker' | 'terminal' | 'policies'
+type Tab = 'overview' | 'checker' | 'academy' | 'terminal' | 'policies'
 type ThemeOption = 'light' | 'stealth'
+type GeneratorMode = 'csprng' | 'diceware'
 
 const rules = [
-  'Minimum 12 characters length',
+  'Minimum 12 characters length (16+ recommended)',
   'Uppercase + lowercase casing mix',
   'At least one numeric digit (0-9)',
   'Special symbol required (!@#$%^&*)',
-  'Block breached dictionary words',
+  'Block breached dictionary words (RockYou / HIBP)',
   'Shannon Entropy threshold >= 60 bits'
 ]
 
 const metrics = [
-  ['Passwords Evaluated', '14,892', '+12.4% this month'],
-  ['Attack Vectors Blocked', '3,418', '+18.2% this month'],
-  ['Avg Entropy Score', '74.2 bits', 'Optimal cyber posture'],
-  ['Threat Mitigation Level', '99.8%', 'Zero breach incidents']
+  ['Passwords Evaluated', '18,420', '+14.6% this month'],
+  ['Credential Replays Blocked', '4,892', '+22.4% this month'],
+  ['Avg Entropy Score', '76.8 bits', 'Optimal cyber defense'],
+  ['Zero-Storage Guarantee', '100% Client RAM', 'Zero network leaks']
 ]
 
 export default function Page() {
@@ -59,35 +75,58 @@ export default function Page() {
   const [visible, setVisible] = useState(false)
   const [mobile, setMobile] = useState(false)
 
-  // Hacker Theme Controls
+  // Zero-Storage Privacy Modal State
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false)
+  const [memoryWipedFeedback, setMemoryWipedFeedback] = useState(false)
+
+  // Theme & Audio Controls
   const [theme, setTheme] = useState<ThemeOption>('light')
   const [matrixEnabled, setMatrixEnabled] = useState(true)
   const [isAudioMuted, setIsAudioMuted] = useState(false)
 
-  // Suggested Strong Password State
-  const [suggestedPassword, setSuggestedPassword] = useState(() => generateStrongPassword(16))
+  // Password Generator State
+  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>('diceware')
+  const [csprngLength, setCsprngLength] = useState(16)
+  const [dicewareWords, setDicewareWords] = useState(4)
+  const [generatedPassword, setGeneratedPassword] = useState(() =>
+    generateDicewarePassphrase(4, '-', false, false)
+  )
   const [copied, setCopied] = useState(false)
 
-  const handleCopy = () => {
+  // Password Analysis Memo
+  const analysis = useMemo(() => analyzePassword(password), [password])
+
+  const handleCopyGenerated = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(suggestedPassword)
+      navigator.clipboard.writeText(generatedPassword)
     }
     setCopied(true)
     hackerAudio.playSuccess()
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleRegenerate = () => {
-    setSuggestedPassword(generateStrongPassword(16))
+  const handleRegeneratePassword = () => {
     hackerAudio.playScan()
+    if (generatorMode === 'csprng') {
+      setGeneratedPassword(generateStrongPassword(csprngLength))
+    } else {
+      setGeneratedPassword(generateDicewarePassphrase(dicewareWords, '-', false, false))
+    }
   }
 
-  const handleApplySuggested = () => {
-    setPassword(suggestedPassword)
+  const handleApplyGenerated = (pwdToApply?: string) => {
+    const target = pwdToApply || generatedPassword
+    setPassword(target)
     hackerAudio.playSuccess()
+    setTab('checker')
   }
 
-  const analysis = useMemo(() => analyzePassword(password), [password])
+  const handleSanitizeMemory = () => {
+    setPassword('')
+    setMemoryWipedFeedback(true)
+    hackerAudio.playSuccess()
+    setTimeout(() => setMemoryWipedFeedback(false), 2500)
+  }
 
   const handleTabChange = (nextTab: Tab) => {
     hackerAudio.playKeypress()
@@ -101,16 +140,24 @@ export default function Page() {
   }
 
   const nav = [
-    ['overview', 'Overview', LayoutDashboard],
-    ['checker', 'Password Checker', KeyRound],
-    ['terminal', 'Hacker CLI Terminal', TerminalIcon],
-    ['policies', 'Policy Engine', Network]
+    ['overview', 'Threat Matrix', LayoutDashboard],
+    ['checker', 'Zero-Knowledge Checker', KeyRound],
+    ['academy', 'Cyber Security Academy', GraduationCap],
+    ['terminal', 'Hacker Shell Console', TerminalIcon],
+    ['policies', 'Policy & Compliance', Network]
   ] as const
 
   return (
     <main className="min-h-screen bg-background text-foreground" data-theme={theme}>
-      {/* Matrix Digital Rain Canvas */}
-      <MatrixBackground theme={theme} active={matrixEnabled} opacity={theme === 'light' ? 0.2 : 0.25} />
+      {/* Matrix Digital Rain Background */}
+      <MatrixBackground theme={theme} active={matrixEnabled} opacity={theme === 'light' ? 0.18 : 0.25} />
+
+      {/* Privacy & Zero-Knowledge Verification Modal */}
+      <ZeroStorageModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
+        onSanitizeMemory={handleSanitizeMemory}
+      />
 
       <div className="flex min-h-screen relative z-10">
         {/* Sidebar Navigation */}
@@ -125,7 +172,7 @@ export default function Page() {
             </div>
             <div>
               <p className="font-mono text-base font-extrabold tracking-wider text-primary glow-text">PASSGUARD</p>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-mono">Cyber Console v3.6</p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-mono">Cyber Console v3.8</p>
             </div>
           </div>
 
@@ -139,7 +186,7 @@ export default function Page() {
 
           {/* Navigation Links */}
           <nav className="mt-8 flex flex-col gap-2">
-            <p className="px-3 pb-2 text-[10px] uppercase tracking-[0.2em] font-mono text-primary/80">Cyber Workspaces</p>
+            <p className="px-3 pb-2 text-[10px] uppercase tracking-[0.2em] font-mono text-primary/80">Cyber Modules</p>
             {nav.map(([id, label, Icon]) => (
               <button
                 key={id}
@@ -150,8 +197,13 @@ export default function Page() {
                     : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 }`}
               >
-                <Icon className="size-4 text-primary" />
-                {label}
+                <Icon className="size-4 text-primary shrink-0" />
+                <span>{label}</span>
+                {id === 'academy' && (
+                  <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary">
+                    NEW
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -164,14 +216,14 @@ export default function Page() {
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  ['light', 'Light', 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]'],
-                  ['stealth', 'Stealth', 'bg-emerald-900/30 text-emerald-400 border-emerald-500/50']
+                  ['light', 'Light Mode', 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]'],
+                  ['stealth', 'Stealth Dark', 'bg-emerald-900/30 text-emerald-400 border-emerald-500/50']
                 ] as const
               ).map(([id, label, colorCls]) => (
                 <button
                   key={id}
                   onClick={() => { setTheme(id); hackerAudio.playKeypress() }}
-                  className={`px-2.5 py-2 text-xs rounded-lg border text-center transition-all ${
+                  className={`px-2 py-2 text-[11px] rounded-lg border text-center transition-all ${
                     theme === id ? `${colorCls} font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]` : 'border-border/60 text-muted-foreground hover:bg-muted'
                   }`}
                 >
@@ -187,26 +239,35 @@ export default function Page() {
                   matrixEnabled ? 'border-primary/50 text-primary bg-primary/10' : 'border-border text-muted-foreground'
                 }`}
               >
-                <span className="flex items-center gap-1.5"><Binary className="size-3.5" /> Matrix Rain</span>
+                <span className="flex items-center gap-1.5"><Binary className="size-3.5" /> Matrix Rain Canvas</span>
                 <span>{matrixEnabled ? 'ON' : 'OFF'}</span>
               </button>
             </div>
           </div>
 
-          {/* Privacy Box */}
-          <div className="mt-auto rounded-xl border border-primary/20 bg-background/80 p-4 font-mono">
-            <div className="flex items-center gap-2 text-xs font-bold text-primary">
-              <ShieldCheck className="size-4" /> ZERO-KNOWLEDGE
+          {/* Privacy & Zero-Knowledge Verification Box */}
+          <div className="mt-auto rounded-xl border border-primary/30 bg-background/90 p-4 font-mono space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                <ShieldCheck className="size-4" /> ZERO-STORAGE
+              </span>
+              <span className="text-[9px] text-emerald-400 font-bold">100% RAM</span>
             </div>
-            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
-              Evaluated strictly in browser RAM. No cleartext or hashed passwords ever touch a remote server.
+            <p className="text-[11px] leading-4 text-muted-foreground">
+              Evaluated strictly in browser RAM. Zero network transmissions.
             </p>
+            <button
+              onClick={() => { setIsPrivacyModalOpen(true); hackerAudio.playKeypress() }}
+              className="w-full mt-2 text-[10px] font-bold text-primary hover:underline flex items-center justify-center gap-1 pt-1 border-t border-border/30"
+            >
+              Verify Privacy Proof <ArrowRight className="size-3" />
+            </button>
           </div>
         </aside>
 
         {/* Main Content Area */}
         <section className="min-w-0 flex-1 flex flex-col">
-          {/* Hacker Header Bar */}
+          {/* Header Bar */}
           <header className="flex h-20 items-center justify-between border-b border-primary/30 px-5 md:px-8 bg-card/60 backdrop-blur-md">
             <div className="flex items-center gap-3">
               <button
@@ -218,12 +279,12 @@ export default function Page() {
               </button>
               <div>
                 <p className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
-                  <Radio className="size-3 text-primary animate-pulse" /> CYBER CONSOLE / SYSTEM POSTURE
+                  <Radio className="size-3 text-primary animate-pulse" /> CYBER CONSOLE / SECURE EVALUATOR
                 </p>
                 <h1 className="text-lg md:text-xl font-bold font-mono text-foreground flex items-center gap-2">
-                  PASSWORD SECURITY EVALUATOR
+                  PASSWORD SECURITY & THREAT EVALUATOR
                   <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] border border-primary/40 bg-primary/10 text-primary font-mono font-normal">
-                    MIL-SPEC 256
+                    ZERO-STORAGE VERIFIED
                   </span>
                 </h1>
               </div>
@@ -238,9 +299,13 @@ export default function Page() {
                 {isAudioMuted ? <VolumeX className="size-4 text-muted-foreground" /> : <Volume2 className="size-4 text-primary" />}
               </button>
 
-              <span className="hidden md:flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs text-primary glow-text">
-                <span className="size-2 rounded-full bg-primary animate-ping" /> KERNEL ONLINE
-              </span>
+              <button
+                onClick={() => { setIsPrivacyModalOpen(true); hackerAudio.playKeypress() }}
+                className="hidden md:flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs text-primary glow-text hover:bg-primary/20 transition-all"
+              >
+                <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>IN-MEMORY SANDBOX</span>
+              </button>
             </div>
           </header>
 
@@ -249,26 +314,28 @@ export default function Page() {
             {/* Banner Header */}
             <div className="mb-8 font-mono">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                <Zap className="size-4" /> INTEL & THREAT MATRIX
+                <Zap className="size-4" /> CRYPTOGRAPHIC STRENGTH & EDUCATION HUB
               </div>
               <h2 className="mt-2 text-balance text-2xl md:text-4xl font-extrabold font-mono tracking-tight text-foreground">
-                CYBER-DEFENSE PASSWORD ENGINE<br />
-                <span className="text-muted-foreground text-xl md:text-3xl font-semibold">NEVER BE CRACKED BY DICTIONARY OR GPU RIGS.</span>
+                ZERO-KNOWLEDGE PASSWORD EVALUATOR<br />
+                <span className="text-muted-foreground text-xl md:text-3xl font-semibold">
+                  SHANNON ENTROPY · GPU CRACK TIME · CREDENTIAL STUFFING DEFENSE
+                </span>
               </h2>
-              <p className="mt-3 max-w-2xl text-xs md:text-sm leading-6 text-muted-foreground">
-                Calculate true Shannon entropy, measure brute-force GPU time-to-crack, check breached dictionary patterns, and test interactive CLI shell commands.
+              <p className="mt-3 max-w-3xl text-xs md:text-sm leading-6 text-muted-foreground">
+                Measure true mathematical entropy ($E = L \times \log_2 N$), detect leetspeak & breach patterns, learn why password reuse triggers credential stuffing cascades, and generate Diceware passphrases—without storing or sending any passwords.
               </p>
             </div>
 
             {/* TAB 1: OVERVIEW */}
             {tab === 'overview' && (
-              <div className="space-y-6">
+              <div className="space-y-6 font-mono">
                 {/* Metric Cards */}
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {metrics.map(([label, value, subtext]) => (
                     <div
                       key={label}
-                      className="rounded-xl border border-primary/30 bg-card/80 p-5 backdrop-blur-md shadow-[0_0_15px_rgba(0,0,0,0.4)] font-mono hover:border-primary/60 transition-colors"
+                      className="rounded-xl border border-primary/30 bg-card/80 p-5 backdrop-blur-md shadow-[0_0_15px_rgba(0,0,0,0.4)] hover:border-primary/60 transition-colors"
                     >
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{label}</span>
@@ -281,286 +348,505 @@ export default function Page() {
                 </div>
 
                 {/* Main Overview Grid */}
-                <div className="grid gap-6 xl:grid-cols-2 font-mono">
+                <div className="grid gap-6 xl:grid-cols-2">
                   {/* Security Posture Gauge */}
-                  <section className="rounded-xl border border-primary/30 bg-card/80 p-6 backdrop-blur-md">
+                  <section className="rounded-xl border border-primary/30 bg-card/80 p-6 backdrop-blur-md space-y-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                          <Cpu className="size-4 text-primary" /> GLOBAL SECURITY POSTURE
+                          <Cpu className="size-4 text-primary" /> GLOBAL CYBER DEFENSE POSTURE
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Real-time composite score based on evaluated telemetry</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Composite telemetry aligned with NIST SP 800-63B guidelines</p>
                       </div>
                       <span className="px-2.5 py-1 text-xs rounded border border-primary/40 bg-primary/10 text-primary font-bold">
                         GRADE A+
                       </span>
                     </div>
 
-                    <div className="mt-8 flex flex-col sm:flex-row items-center gap-8 justify-center">
+                    <div className="flex flex-col sm:flex-row items-center gap-8 justify-center pt-2">
                       <div className="relative flex size-40 flex-col items-center justify-center rounded-full border-[12px] border-primary/80 shadow-[0_0_25px_rgba(0,255,102,0.2)]">
-                        <span className="font-mono text-4xl font-extrabold text-foreground glow-text">94</span>
+                        <span className="font-mono text-4xl font-extrabold text-foreground glow-text">96</span>
                         <span className="text-[10px] uppercase text-muted-foreground tracking-widest">OUT OF 100</span>
                       </div>
 
                       <div className="flex flex-col gap-3 text-xs">
                         <div className="flex items-center gap-3">
                           <span className="size-3 rounded-full bg-primary" />
-                          <span className="text-foreground font-bold">78% Strong</span> (Entropy &gt; 60 bits)
+                          <span className="text-foreground font-bold">82% High Entropy</span> (Entropy &gt; 65 bits)
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="size-3 rounded-full bg-amber-500" />
-                          <span className="text-foreground font-bold">16% Moderate</span> (Needs numbers/symbols)
+                          <span className="text-foreground font-bold">14% Moderate</span> (Needs length / symbols)
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="size-3 rounded-full bg-red-500" />
-                          <span className="text-foreground font-bold">6% Breached</span> (Known dictionary leak)
+                          <span className="text-foreground font-bold">4% Breached / Reused</span> (Known leak dump)
                         </div>
                       </div>
                     </div>
+
+                    <div className="pt-2 border-t border-border/40 flex justify-between items-center">
+                      <button
+                        onClick={() => handleTabChange('checker')}
+                        className="px-4 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-xs font-bold flex items-center gap-1.5 transition-all"
+                      >
+                        Launch Password Evaluator <ArrowRight className="size-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => handleTabChange('academy')}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        Explore Security Academy →
+                      </button>
+                    </div>
                   </section>
 
-                  {/* Live Activity Telemetry Log */}
-                  <section className="rounded-xl border border-primary/30 bg-card/80 p-6 backdrop-blur-md">
+                  {/* Education & Threat Highlights */}
+                  <section className="rounded-xl border border-primary/30 bg-card/80 p-6 backdrop-blur-md space-y-4">
                     <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                      <Radio className="size-4 text-primary" /> REAL-TIME THREAT MITIGATION LOG
+                      <ShieldAlert className="size-4 text-destructive" /> TOP CRITICAL THREAT VECTORS
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Zero password content logged - hashes redacted</p>
+                    <p className="text-xs text-muted-foreground">Key vulnerabilities identified in credential datasets</p>
 
-                    <div className="mt-6 flex flex-col gap-3.5 text-xs">
-                      {[
-                        ['High Entropy Passphrase Verified', 'Entropy: 82.4 bits · 1 sec ago', 'text-primary'],
-                        ['Dictionary Sequence Blocked', 'Matched common word pattern · 4 secs ago', 'text-destructive'],
-                        ['Character Pool Expanded', 'Added uppercase & symbols · 12 secs ago', 'text-primary'],
-                        ['Brute-Force Estimate Calculated', 'GPU time: 4.2M years · 28 secs ago', 'text-emerald-400']
-                      ].map(([title, desc, colorCls]) => (
-                        <div key={title} className="flex items-center gap-3 p-2.5 rounded border border-border/40 bg-muted/30">
-                          <CheckCircle2 className={`size-4 ${colorCls} shrink-0`} />
-                          <div>
-                            <p className="text-foreground font-bold">{title}</p>
-                            <p className="text-[11px] text-muted-foreground">{desc}</p>
-                          </div>
+                    <div className="space-y-3 pt-1 text-xs">
+                      <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 flex items-start gap-3">
+                        <Flame className="size-5 text-destructive shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-foreground">Password Reuse & Credential Stuffing</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Over 80% of corporate breaches originate from stolen credentials re-used from minor third-party breaches.
+                          </p>
                         </div>
-                      ))}
+                      </div>
+
+                      <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">
+                        <AlertTriangle className="size-5 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-foreground">Predictable Leetspeak & Year Suffixes</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Adversaries use Hashcat rule engines to reverse &quot;P@ssw0rd2024!&quot; in under 1 millisecond.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-lg border border-primary/40 bg-primary/10 flex items-start gap-3">
+                        <KeyRound className="size-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-foreground">Diceware Passphrase Solution</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            4 random words provide 77+ bits of true information entropy with effortless human recall.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </section>
                 </div>
               </div>
             )}
 
-            {/* TAB 2: PASSWORD CHECKER */}
+            {/* TAB 2: ZERO-KNOWLEDGE PASSWORD CHECKER */}
             {tab === 'checker' && (
-              <section className="grid gap-6 lg:grid-cols-2 font-mono">
-                {/* Input & Entropy Card */}
-                <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-                  <div className="flex items-center gap-3 border-b border-border/40 pb-4">
-                    <KeyRound className="size-6 text-primary" />
+              <section className="space-y-6 font-mono">
+                {/* Zero-Storage Assurance Banner */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-primary/40 bg-primary/10 text-xs">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="size-5 text-primary shrink-0" />
                     <div>
-                      <h3 className="font-bold text-base text-foreground">ENTROPY & THREAT SCANNER</h3>
-                      <p className="text-xs text-muted-foreground">Evaluated locally in client memory</p>
+                      <p className="font-bold text-foreground">PROVEN ZERO-KNOWLEDGE RAM SANDBOX</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        All Shannon entropy & cryptographic digest evaluations occur 100% inside local browser memory.
+                      </p>
                     </div>
                   </div>
 
-                  <label className="mt-6 block text-xs font-bold text-primary uppercase tracking-wider" htmlFor="password-input">
-                    TEST PASSWORD / PASSPHRASE
-                  </label>
-                  <div className="mt-2 flex rounded-lg border border-primary/40 bg-background/90 focus-within:border-primary">
-                    <input
-                      id="password-input"
-                      type={visible ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="min-w-0 flex-1 bg-transparent px-4 py-3 font-mono text-sm outline-none text-foreground placeholder:text-muted-foreground/50"
-                      placeholder="Type a password to test..."
-                      autoComplete="off"
-                    />
+                  <div className="flex items-center gap-2">
                     <button
-                      className="px-4 text-muted-foreground hover:text-primary transition-colors"
-                      onClick={() => setVisible(!visible)}
-                      aria-label={visible ? 'Hide password' : 'Show password'}
+                      onClick={() => setIsPrivacyModalOpen(true)}
+                      className="px-3 py-1.5 rounded-lg bg-card border border-primary/40 text-primary hover:bg-muted font-bold text-xs transition-colors flex items-center gap-1"
                     >
-                      {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      <Info className="size-3.5" /> Architecture Proof
                     </button>
-                  </div>
 
-                  {/* Rating Badge & Score */}
-                  <div className="mt-6 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-muted-foreground">RATING:</span>
-                      <p className="text-xl font-extrabold" style={{ color: analysis.toneColor }}>
-                        {analysis.rating} ({analysis.strengthScore}/100)
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs text-muted-foreground">SHANNON ENTROPY:</span>
-                      <p className="text-xl font-extrabold text-primary">{analysis.entropyBits} BITS</p>
-                    </div>
-                  </div>
-
-                  {/* Entropy Bar */}
-                  <div className="mt-4">
-                    <div className="h-3 w-full rounded-full bg-muted/60 overflow-hidden flex p-0.5 border border-border">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${analysis.strengthScore}%`,
-                          backgroundColor: analysis.toneColor,
-                          boxShadow: `0 0 10px ${analysis.toneColor}`
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Character Pool Breakdown */}
-                  <div className="mt-6 grid grid-cols-4 gap-2 text-center text-xs">
-                    <div className="p-2 rounded border border-border bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground block">LOWER</span>
-                      <span className="font-bold text-foreground">{analysis.characterBreakdown.lowercase}</span>
-                    </div>
-                    <div className="p-2 rounded border border-border bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground block">UPPER</span>
-                      <span className="font-bold text-foreground">{analysis.characterBreakdown.uppercase}</span>
-                    </div>
-                    <div className="p-2 rounded border border-border bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground block">DIGITS</span>
-                      <span className="font-bold text-foreground">{analysis.characterBreakdown.numbers}</span>
-                    </div>
-                    <div className="p-2 rounded border border-border bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground block">SYMBOLS</span>
-                      <span className="font-bold text-foreground">{analysis.characterBreakdown.symbols}</span>
-                    </div>
-                  </div>
-
-                  {/* Suggested Strong Password */}
-                  <div className="mt-6 pt-4 border-t border-primary/30 space-y-3 font-mono">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-primary flex items-center gap-1.5 glow-text">
-                        <Sparkles className="size-3.5" /> SUGGESTED HIGH-ENTROPY PASSPHRASE
-                      </p>
-                      <button
-                        onClick={handleRegenerate}
-                        className="text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
-                        title="Generate another strong password"
-                      >
-                        <RefreshCw className="size-3" /> New
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/40 bg-muted/40 font-mono text-xs">
-                      <span className="flex-1 font-bold text-emerald-400 select-all tracking-wider font-mono truncate">
-                        {suggestedPassword}
-                      </span>
-
-                      <button
-                        onClick={handleCopy}
-                        className="px-2 py-1 rounded bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-[10px] font-bold flex items-center gap-1 transition-all"
-                        title="Copy to clipboard"
-                      >
-                        {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                        {copied ? 'COPIED' : 'COPY'}
-                      </button>
-
-                      <button
-                        onClick={handleApplySuggested}
-                        className="px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground border border-border text-[10px] font-bold transition-all"
-                        title="Test this password in evaluator"
-                      >
-                        TEST
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleSanitizeMemory}
+                      className="px-3 py-1.5 rounded-lg bg-destructive/20 hover:bg-destructive/30 text-destructive border border-destructive/40 font-bold text-xs transition-colors flex items-center gap-1"
+                      title="Wipe active memory state"
+                    >
+                      <Trash2 className="size-3.5" /> {memoryWipedFeedback ? 'RAM WIPED!' : 'Sanitize RAM'}
+                    </button>
                   </div>
                 </div>
 
-                {/* Crack Time & Policy Breakdown */}
-                <div className="space-y-6">
-                  {/* Time to Crack Table */}
-                  <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md">
-                    <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                      <Cpu className="size-4 text-primary" /> BRUTE FORCE TIME-TO-CRACK
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Estimated time required to test all {analysis.poolSize}^{analysis.length} combinations</p>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Left Column: Input & Live Analysis */}
+                  <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)] space-y-6">
+                    <div className="flex items-center justify-between border-b border-border/40 pb-4">
+                      <div className="flex items-center gap-3">
+                        <KeyRound className="size-6 text-primary" />
+                        <div>
+                          <h3 className="font-bold text-base text-foreground">ENTROPY & THREAT SCANNER</h3>
+                          <p className="text-xs text-muted-foreground">Evaluated strictly in client-side RAM</p>
+                        </div>
+                      </div>
 
-                    <div className="mt-4 space-y-3 text-xs">
-                      <div className="flex justify-between items-center p-2.5 rounded border border-border/40 bg-muted/30">
-                        <span className="text-muted-foreground">Online Throttled (10 req/s):</span>
-                        <span className="font-bold text-foreground">{analysis.crackTimes.onlineThrottled}</span>
+                      {password && (
+                        <button
+                          onClick={handleSanitizeMemory}
+                          className="text-[11px] text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                        >
+                          <Trash2 className="size-3" /> Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Password Input */}
+                    <div>
+                      <div className="flex justify-between items-center text-xs font-bold text-primary uppercase tracking-wider mb-2">
+                        <label htmlFor="password-input">TEST PASSWORD / PASSPHRASE</label>
+                        <span className="text-muted-foreground font-normal lowercase">{analysis.length} characters</span>
                       </div>
-                      <div className="flex justify-between items-center p-2.5 rounded border border-border/40 bg-muted/30">
-                        <span className="text-muted-foreground">Fast Online (1,000 req/s):</span>
-                        <span className="font-bold text-foreground">{analysis.crackTimes.onlineFast}</span>
+                      <div className="flex rounded-lg border border-primary/40 bg-background/90 focus-within:border-primary">
+                        <input
+                          id="password-input"
+                          type={visible ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="min-w-0 flex-1 bg-transparent px-4 py-3 font-mono text-sm outline-none text-foreground placeholder:text-muted-foreground/50"
+                          placeholder="Type or paste a password to test..."
+                          autoComplete="off"
+                          spellCheck={false}
+                        />
+                        <button
+                          className="px-4 text-muted-foreground hover:text-primary transition-colors"
+                          onClick={() => setVisible(!visible)}
+                          aria-label={visible ? 'Hide password' : 'Show password'}
+                        >
+                          {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
                       </div>
-                      <div className="flex justify-between items-center p-2.5 rounded border border-border/40 bg-muted/30">
-                        <span className="text-muted-foreground">Offline GPU Rig (100 GH/s):</span>
-                        <span className="font-bold text-emerald-400">{analysis.crackTimes.offlineGpu}</span>
+                    </div>
+
+                    {/* Rating Badge & Score */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        <span className="text-xs text-muted-foreground">SECURITY RATING:</span>
+                        <p className="text-xl font-extrabold" style={{ color: analysis.toneColor }}>
+                          {analysis.rating} ({analysis.strengthScore}/100)
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center p-2.5 rounded border border-border/40 bg-muted/30">
-                        <span className="text-muted-foreground">Supercomputer Cluster:</span>
-                        <span className="font-bold text-primary">{analysis.crackTimes.supercomputer}</span>
+                      <div className="text-right">
+                        <span className="text-xs text-muted-foreground">SHANNON ENTROPY:</span>
+                        <p className="text-xl font-extrabold text-primary">{analysis.entropyBits} BITS</p>
                       </div>
+                    </div>
+
+                    {/* Entropy Bar */}
+                    <div>
+                      <div className="h-3 w-full rounded-full bg-muted/60 overflow-hidden flex p-0.5 border border-border">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.max(5, analysis.strengthScore)}%`,
+                            backgroundColor: analysis.toneColor,
+                            boxShadow: `0 0 10px ${analysis.toneColor}`
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                        <span>Critical (0-24)</span>
+                        <span>Moderate (45-64)</span>
+                        <span className="text-emerald-400">Unbreakable (85-100)</span>
+                      </div>
+                    </div>
+
+                    {/* Character Pool Breakdown */}
+                    <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                      <div className="p-2 rounded border border-border bg-muted/30">
+                        <span className="text-[10px] text-muted-foreground block">LOWER</span>
+                        <span className="font-bold text-foreground">{analysis.characterBreakdown.lowercase}</span>
+                      </div>
+                      <div className="p-2 rounded border border-border bg-muted/30">
+                        <span className="text-[10px] text-muted-foreground block">UPPER</span>
+                        <span className="font-bold text-foreground">{analysis.characterBreakdown.uppercase}</span>
+                      </div>
+                      <div className="p-2 rounded border border-border bg-muted/30">
+                        <span className="text-[10px] text-muted-foreground block">DIGITS</span>
+                        <span className="font-bold text-foreground">{analysis.characterBreakdown.numbers}</span>
+                      </div>
+                      <div className="p-2 rounded border border-border bg-muted/30">
+                        <span className="text-[10px] text-muted-foreground block">SYMBOLS</span>
+                        <span className="font-bold text-foreground">{analysis.characterBreakdown.symbols}</span>
+                      </div>
+                    </div>
+
+                    {/* Threat / Pattern Warnings */}
+                    {analysis.patternsDetected.length > 0 && (
+                      <div className="p-4 rounded-xl border border-destructive/50 bg-destructive/10 space-y-2 text-xs">
+                        <p className="font-bold text-destructive flex items-center gap-1.5">
+                          <AlertTriangle className="size-4" /> VULNERABILITY & PATTERN DETECTIONS ({analysis.patternsDetected.length}):
+                        </p>
+                        <div className="space-y-1.5">
+                          {analysis.patternsDetected.map((pat, idx) => (
+                            <div key={idx} className="p-2 rounded bg-card/60 border border-destructive/30">
+                              <p className="font-bold text-destructive text-[11px]">{pat.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{pat.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dynamic Smart Recommendations */}
+                    <div className="p-4 rounded-xl border border-primary/30 bg-muted/20 space-y-2 text-xs">
+                      <p className="font-bold text-primary flex items-center gap-1.5">
+                        <Sparkles className="size-4" /> SMART IMPROVEMENT RECOMMENDATIONS:
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px]">
+                        {analysis.improvementTips.map((tip, idx) => (
+                          <li key={idx}>{tip}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
 
-                  {/* Policy Checklist */}
-                  <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md">
-                    <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                      <ShieldAlert className="size-4 text-primary" /> CYBER SECURITY CHECKLIST
-                    </h3>
+                  {/* Right Column: Brute-Force Estimates, Generators & Hashes */}
+                  <div className="space-y-6">
+                    {/* Time to Crack Estimates */}
+                    <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md space-y-4">
+                      <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                        <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                          <Cpu className="size-4 text-primary" /> BRUTE FORCE TIME-TO-CRACK
+                        </h3>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          Search Space: {analysis.poolSize}^{analysis.length}
+                        </span>
+                      </div>
 
-                    <div className="mt-4 space-y-3 text-xs">
-                      {rules.map((rule, idx) => {
-                        const isCheckPassed = [
-                          analysis.checks.min12,
-                          analysis.checks.casing,
-                          analysis.checks.hasNumber,
-                          analysis.checks.hasSymbol,
-                          analysis.checks.noCommonPattern,
-                          analysis.checks.highEntropy
-                        ][idx]
-
-                        return (
-                          <div key={rule} className="flex items-center justify-between p-2 rounded border border-border/40">
-                            <span className={isCheckPassed ? 'text-foreground font-bold' : 'text-muted-foreground'}>{rule}</span>
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${isCheckPassed ? 'bg-primary/20 text-primary border border-primary/40' : 'bg-muted text-muted-foreground'}`}>
-                              {isCheckPassed ? 'PASSED' : 'FAILED'}
-                            </span>
+                      <div className="space-y-3 text-xs">
+                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
+                          <div>
+                            <p className="font-bold text-foreground">Online Throttled (10 guesses/sec)</p>
+                            <p className="text-[10px] text-muted-foreground">Standard web login with CAPTCHA & rate limits</p>
                           </div>
-                        )
-                      })}
+                          <span className="font-bold text-foreground text-sm">{analysis.crackTimes.onlineThrottled}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
+                          <div>
+                            <p className="font-bold text-foreground">Fast Online Botnet (1,000 guesses/sec)</p>
+                            <p className="text-[10px] text-muted-foreground">Distributed credential stuffing proxies</p>
+                          </div>
+                          <span className="font-bold text-foreground text-sm">{analysis.crackTimes.onlineFast}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
+                          <div>
+                            <p className="font-bold text-emerald-400">8x RTX 4090 GPU Rig (100 Billion H/s)</p>
+                            <p className="text-[10px] text-muted-foreground">Offline Hashcat NTLM / MD5 brute force</p>
+                          </div>
+                          <span className="font-extrabold text-emerald-400 text-sm">{analysis.crackTimes.offlineGpu}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
+                          <div>
+                            <p className="font-bold text-cyan-400">Supercomputer Cluster (10 Trillion H/s)</p>
+                            <p className="text-[10px] text-muted-foreground">Massive state-level distributed GPU network</p>
+                          </div>
+                          <span className="font-extrabold text-cyan-400 text-sm">{analysis.crackTimes.supercomputer}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dual High-Entropy Generator Card */}
+                    <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md space-y-4">
+                      <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="size-4 text-primary" />
+                          <h3 className="font-bold text-base text-foreground">HIGH-ENTROPY GENERATOR</h3>
+                        </div>
+
+                        {/* Generator Mode Switcher */}
+                        <div className="flex gap-1 p-1 rounded-lg bg-muted/60 border border-border/60 text-xs">
+                          <button
+                            onClick={() => {
+                              setGeneratorMode('diceware')
+                              setGeneratedPassword(generateDicewarePassphrase(dicewareWords, '-', false, false))
+                              hackerAudio.playKeypress()
+                            }}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                              generatorMode === 'diceware' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Diceware Phrase
+                          </button>
+                          <button
+                            onClick={() => {
+                              setGeneratorMode('csprng')
+                              setGeneratedPassword(generateStrongPassword(csprngLength))
+                              hackerAudio.playKeypress()
+                            }}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                              generatorMode === 'csprng' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Random CSPRNG
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Generated Output Display */}
+                      <div className="flex flex-col sm:flex-row items-center gap-2.5 p-3.5 rounded-lg border border-primary/50 bg-background/90 font-mono text-xs">
+                        <span className="flex-1 font-bold text-emerald-400 select-all tracking-wider break-all">
+                          {generatedPassword}
+                        </span>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={handleRegeneratePassword}
+                            className="p-1.5 rounded border border-border hover:border-primary text-muted-foreground hover:text-primary transition-colors"
+                            title="Generate new password"
+                          >
+                            <RefreshCw className="size-3.5" />
+                          </button>
+
+                          <button
+                            onClick={handleCopyGenerated}
+                            className="px-2.5 py-1.5 rounded bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-[11px] font-bold flex items-center gap-1 transition-all"
+                          >
+                            {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                            {copied ? 'COPIED' : 'COPY'}
+                          </button>
+
+                          <button
+                            onClick={() => handleApplyGenerated()}
+                            className="px-2.5 py-1.5 rounded bg-muted hover:bg-muted/80 text-foreground border border-border text-[11px] font-bold transition-all"
+                          >
+                            EVALUATE
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Generator Customization Sliders */}
+                      {generatorMode === 'diceware' ? (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                          <span>Word Count: <strong className="text-primary">{dicewareWords} words</strong></span>
+                          <input
+                            type="range"
+                            min="3"
+                            max="6"
+                            value={dicewareWords}
+                            onChange={(e) => {
+                              const val = Number(e.target.value)
+                              setDicewareWords(val)
+                              setGeneratedPassword(generateDicewarePassphrase(val, '-', false, false))
+                            }}
+                            className="w-36 accent-primary"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                          <span>Length: <strong className="text-primary">{csprngLength} chars</strong></span>
+                          <input
+                            type="range"
+                            min="12"
+                            max="32"
+                            value={csprngLength}
+                            onChange={(e) => {
+                              const val = Number(e.target.value)
+                              setCsprngLength(val)
+                              setGeneratedPassword(generateStrongPassword(val))
+                            }}
+                            className="w-36 accent-primary"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Local Cryptographic Hashes & K-Anonymity */}
+                    <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md space-y-4">
+                      <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Hash className="size-4 text-cyan-400" />
+                          <h3 className="font-bold text-base text-foreground">CRYPTOGRAPHIC DIGESTS</h3>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-bold">CLIENT-SIDE MATH</span>
+                      </div>
+
+                      <div className="space-y-3 text-xs">
+                        <div className="p-2.5 rounded border border-border/40 bg-muted/30">
+                          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                            <span>SHA-256 (FIPS 180-4 Standard):</span>
+                            <span>256 Bits</span>
+                          </div>
+                          <p className="font-mono text-[11px] text-primary break-all select-all font-bold">
+                            {analysis.hashSimulations.sha256}
+                          </p>
+                        </div>
+
+                        <div className="p-2.5 rounded border border-border/40 bg-muted/30">
+                          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                            <span>SHA-1 (K-Anonymity Breach Format):</span>
+                            <span className="text-cyan-400 font-bold">Prefix: {analysis.hashSimulations.kAnonymityPrefix}</span>
+                          </div>
+                          <p className="font-mono text-[11px] text-muted-foreground break-all select-all">
+                            <span className="text-cyan-400 font-bold">{analysis.hashSimulations.kAnonymityPrefix}</span>
+                            <span>{analysis.hashSimulations.kAnonymitySuffix}</span>
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </section>
             )}
 
-            {/* TAB 3: HACKER TERMINAL */}
+            {/* TAB 3: CYBER EDUCATION ACADEMY */}
+            {tab === 'academy' && (
+              <section>
+                <EducationAcademy onTestPassword={handleApplyGenerated} />
+              </section>
+            )}
+
+            {/* TAB 4: HACKER TERMINAL */}
             {tab === 'terminal' && (
               <section className="space-y-4">
                 <TerminalConsole onThemeChange={setTheme} currentTheme={theme} />
               </section>
             )}
 
-            {/* TAB 4: POLICY ENGINE */}
+            {/* TAB 5: POLICY ENGINE */}
             {tab === 'policies' && (
-              <section className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md font-mono">
+              <section className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md font-mono space-y-6">
                 <div className="flex items-center gap-3 border-b border-border/40 pb-4">
                   <Gauge className="size-6 text-primary" />
                   <div>
-                    <h3 className="font-bold text-base text-foreground">ENFORCEMENT POLICY ENGINE</h3>
-                    <p className="text-xs text-muted-foreground">Enterprise rule vectors applied to password security evaluations.</p>
+                    <h3 className="font-bold text-base text-foreground">ENTERPRISE POLICY & COMPLIANCE ENGINE</h3>
+                    <p className="text-xs text-muted-foreground">Real-time enforcement rules aligned with NIST SP 800-63B standards.</p>
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   {rules.map((rule) => (
                     <div key={rule} className="flex items-center justify-between rounded-lg border border-primary/30 bg-muted/30 p-4">
                       <div className="flex items-center gap-3">
-                        <CheckCircle2 className="size-4 text-primary" />
+                        <CheckCircle2 className="size-4 text-primary shrink-0" />
                         <span className="text-xs font-bold text-foreground">{rule}</span>
                       </div>
-                      <span className="text-[10px] px-2 py-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
+                      <span className="text-[10px] px-2 py-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold shrink-0">
                         ENFORCED
                       </span>
                     </div>
                   ))}
+                </div>
+
+                <div className="p-4 rounded-xl border border-primary/30 bg-primary/10 text-xs text-foreground space-y-2">
+                  <p className="font-bold text-primary flex items-center gap-2">
+                    <ShieldCheck className="size-4" /> MODERN DIGITAL IDENTITY COMPLIANCE:
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Unlike legacy password policies that force frequent periodic resets (driving employees to make weak predictable tweaks like Spring2023! -&gt; Summer2023!), modern NIST guidance mandates minimum 15+ character lengths, breach database screening, and Passkey/MFA adoption.
+                  </p>
                 </div>
               </section>
             )}
