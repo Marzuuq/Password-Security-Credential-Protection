@@ -6,8 +6,9 @@ import {
   generateDicewarePassphrase,
   ANTI_PATTERNS
 } from '@/lib/password-security'
+import { analyzePasswordWithZyla, ZYLA_API_ENDPOINT } from '@/lib/zyla-api'
 import { hackerAudio } from '@/lib/hacker-audio'
-import { Terminal, Send, Trash2, Cpu, ShieldAlert, KeyRound, Lock, Sparkles, ShieldCheck } from 'lucide-react'
+import { Terminal, Send, Trash2, Cpu, ShieldAlert, KeyRound, Lock, Sparkles, ShieldCheck, Globe } from 'lucide-react'
 
 interface HistoryItem {
   id: string
@@ -42,7 +43,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
           <pre className="text-primary glow-text font-bold leading-none hidden sm:block">{ASCII_LOGO}</pre>
           <p className="text-emerald-400">✔ SYSTEM INITIALIZED: Security Console Kernel v3.8.0-release</p>
           <p className="text-cyan-400">🔒 ZERO-STORAGE ACTIVE: Evaluated 100% in browser volatile RAM.</p>
-          <p className="text-muted-foreground">Type <span className="text-primary font-bold">help</span> to view available commands, <span className="text-primary font-bold">eval &lt;password&gt;</span> to scan entropy, or <span className="text-primary font-bold">diceware</span> to generate a passphrase.</p>
+          <p className="text-muted-foreground">Type <span className="text-primary font-bold">help</span> to view available commands, <span className="text-primary font-bold">eval &lt;password&gt;</span> to scan entropy, <span className="text-primary font-bold">zyla &lt;password&gt;</span> to test Zyla Labs Cloud API, or <span className="text-primary font-bold">diceware</span> to generate a passphrase.</p>
         </div>
       ),
       timestamp: new Date().toLocaleTimeString()
@@ -55,7 +56,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [history])
 
-  const handleCommand = (cmdStr: string) => {
+  const handleCommand = async (cmdStr: string) => {
     const trimmed = cmdStr.trim()
     if (!trimmed) return
 
@@ -74,6 +75,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
             <p className="text-primary font-bold">Available Cyber Shell Commands:</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
               <div><span className="text-emerald-400 font-bold">eval &lt;password&gt;</span> : Deep Shannon entropy & threat analysis</div>
+              <div><span className="text-emerald-400 font-bold">zyla &lt;password&gt;</span> : Query Zyla Labs Cloud API (GET endpoint #2114)</div>
               <div><span className="text-emerald-400 font-bold">cracktime &lt;password&gt;</span> : GPU & supercomputer crack time estimate</div>
               <div><span className="text-emerald-400 font-bold">diceware [count]</span> : Generate 3-6 word memorable passphrase</div>
               <div><span className="text-emerald-400 font-bold">antipatterns</span> : Show top 6 dangerous weak password habits</div>
@@ -123,6 +125,57 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
               )}
             </div>
           )
+        }
+        break
+
+      case 'zyla':
+      case 'zylalabs':
+      case 'api':
+      case 'apicheck':
+        if (!args) {
+          outputNode = <p className="text-destructive font-mono text-xs">Error: Missing password. Usage: zyla &lt;password&gt;</p>
+        } else {
+          hackerAudio.playScan()
+          const zylaRes = await analyzePasswordWithZyla(args)
+          if (zylaRes.success) {
+            hackerAudio.playSuccess()
+            outputNode = (
+              <div className="space-y-2 text-xs font-mono border-l-2 border-emerald-400 pl-3 py-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Endpoint:</span>
+                  <span className="text-emerald-400 font-bold">GET /api/2254/.../2114/password+analysis</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">
+                    {zylaRes.status || 200} OK ({zylaRes.latencyMs}ms)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Mode:</span>
+                  <span className={zylaRes.mode === 'live_api' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                    {zylaRes.mode === 'live_api' ? '⚡ LIVE ZYLA CLOUD' : '🧪 SANDBOX SIMULATION'}
+                  </span>
+                  <span className="text-muted-foreground">| Result:</span>
+                  <span className="text-primary font-bold uppercase tracking-wider glow-text">
+                    &quot;{zylaRes.data?.result || 'Evaluated'}&quot;
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-background/80 border border-border/40 text-[11px] text-muted-foreground select-all">
+                  <code>{JSON.stringify(zylaRes.data || zylaRes, null, 2)}</code>
+                </div>
+                {zylaRes.note && (
+                  <p className="text-[10px] text-amber-400">ℹ {zylaRes.note}</p>
+                )}
+              </div>
+            )
+          } else {
+            hackerAudio.playAlert()
+            outputNode = (
+              <div className="space-y-1 text-xs font-mono text-destructive border-l-2 border-destructive pl-3 py-1">
+                <p className="font-bold">❌ ZYLA API ERROR:</p>
+                <p>{zylaRes.error || 'Failed to communicate with Zyla Labs endpoint'}</p>
+                <p className="text-[10px] text-muted-foreground">Ensure your API key is valid or check network connection.</p>
+              </div>
+            )
+          }
         }
         break
 

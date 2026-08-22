@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   CheckCircle2,
@@ -28,6 +28,7 @@ import {
   Copy,
   Check,
   RefreshCw,
+  RotateCw,
   Trash2,
   Sliders,
   HelpCircle,
@@ -36,13 +37,24 @@ import {
   Flame,
   Hash,
   AlertTriangle,
-  ServerOff
+  ServerOff,
+  Globe,
+  Key,
+  Play,
+  Code
 } from 'lucide-react'
 import {
   analyzePassword,
   generateStrongPassword,
   generateDicewarePassphrase
 } from '@/lib/password-security'
+import {
+  analyzePasswordWithZyla,
+  ZYLA_API_ENDPOINT,
+  ZylaAnalysisResult,
+  getStoredZylaApiKey,
+  saveStoredZylaApiKey
+} from '@/lib/zyla-api'
 import { hackerAudio } from '@/lib/hacker-audio'
 import { MatrixBackground } from '@/components/matrix-background'
 import { TerminalConsole } from '@/components/terminal-console'
@@ -93,6 +105,18 @@ export default function Page() {
   )
   const [copied, setCopied] = useState(false)
 
+  // Zyla Labs API Integration State
+  const [zylaResult, setZylaResult] = useState<ZylaAnalysisResult | null>(null)
+  const [isZylaLoading, setIsZylaLoading] = useState(false)
+  const [zylaApiKey, setZylaApiKey] = useState('')
+  const [showZylaConfig, setShowZylaConfig] = useState(false)
+  const [showApiTelemetry, setShowApiTelemetry] = useState(false)
+  const [copiedJson, setCopiedJson] = useState(false)
+
+  useEffect(() => {
+    setZylaApiKey(getStoredZylaApiKey())
+  }, [])
+
   // Password Analysis Memo
   const analysis = useMemo(() => analyzePassword(password), [password])
 
@@ -123,9 +147,44 @@ export default function Page() {
 
   const handleSanitizeMemory = () => {
     setPassword('')
+    setZylaResult(null)
     setMemoryWipedFeedback(true)
     hackerAudio.playSuccess()
     setTimeout(() => setMemoryWipedFeedback(false), 2500)
+  }
+
+  const handleQueryZyla = async (pwdToQuery?: string) => {
+    const target = pwdToQuery ?? password
+    if (!target) return
+    hackerAudio.playScan()
+    setIsZylaLoading(true)
+    try {
+      const res = await analyzePasswordWithZyla(target, zylaApiKey)
+      setZylaResult(res)
+      if (res.success) {
+        hackerAudio.playSuccess()
+      } else {
+        hackerAudio.playAlert()
+      }
+    } catch {
+      hackerAudio.playAlert()
+    } finally {
+      setIsZylaLoading(false)
+    }
+  }
+
+  const handleSaveZylaKey = (key: string) => {
+    setZylaApiKey(key)
+    saveStoredZylaApiKey(key)
+    hackerAudio.playSuccess()
+  }
+
+  const handleCopyZylaJson = () => {
+    if (!zylaResult) return
+    navigator.clipboard.writeText(JSON.stringify(zylaResult, null, 2))
+    setCopiedJson(true)
+    hackerAudio.playSuccess()
+    setTimeout(() => setCopiedJson(false), 2000)
   }
 
   const handleTabChange = (nextTab: Tab) => {
@@ -445,357 +504,334 @@ export default function Page() {
               </div>
             )}
 
-            {/* TAB 2: ZERO-KNOWLEDGE PASSWORD CHECKER */}
+            {/* TAB 2: ZERO-KNOWLEDGE PASSWORD CHECKER (SIMPLIFIED & CLEAN) */}
             {tab === 'checker' && (
-              <section className="space-y-6 font-mono">
-                {/* Zero-Storage Assurance Banner */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-primary/40 bg-primary/10 text-xs">
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck className="size-5 text-primary shrink-0" />
-                    <div>
-                      <p className="font-bold text-foreground">PROVEN ZERO-KNOWLEDGE RAM SANDBOX</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        All Shannon entropy & cryptographic digest evaluations occur 100% inside local browser memory.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setIsPrivacyModalOpen(true)}
-                      className="px-3 py-1.5 rounded-lg bg-card border border-primary/40 text-primary hover:bg-muted font-bold text-xs transition-colors flex items-center gap-1"
-                    >
-                      <Info className="size-3.5" /> Architecture Proof
-                    </button>
-
-                    <button
-                      onClick={handleSanitizeMemory}
-                      className="px-3 py-1.5 rounded-lg bg-destructive/20 hover:bg-destructive/30 text-destructive border border-destructive/40 font-bold text-xs transition-colors flex items-center gap-1"
-                      title="Wipe active memory state"
-                    >
-                      <Trash2 className="size-3.5" /> {memoryWipedFeedback ? 'RAM WIPED!' : 'Sanitize RAM'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {/* Left Column: Input & Live Analysis */}
-                  <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)] space-y-6">
-                    <div className="flex items-center justify-between border-b border-border/40 pb-4">
-                      <div className="flex items-center gap-3">
-                        <KeyRound className="size-6 text-primary" />
-                        <div>
-                          <h3 className="font-bold text-base text-foreground">ENTROPY & THREAT SCANNER</h3>
-                          <p className="text-xs text-muted-foreground">Evaluated strictly in client-side RAM</p>
-                        </div>
+              <section className="max-w-4xl mx-auto space-y-6 font-mono">
+                {/* Main Evaluation Card */}
+                <div className="rounded-2xl border border-primary/40 bg-card/85 p-6 md:p-8 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6">
+                  {/* Card Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/40 shadow-[0_0_10px_rgba(0,255,102,0.2)]">
+                        <KeyRound className="size-5" />
                       </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-foreground tracking-tight">PASSWORD STRENGTH CHECKER</h3>
+                        <p className="text-xs text-muted-foreground">100% Client-Side RAM Sandbox · Zero Network Storage</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setShowZylaConfig(!showZylaConfig)
+                          hackerAudio.playKeypress()
+                        }}
+                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                          zylaApiKey
+                            ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                            : 'border-border hover:border-primary/50 text-muted-foreground hover:text-primary'
+                        }`}
+                        title="Configure Zyla Labs API Key"
+                      >
+                        <Key className="size-3" />
+                        <span>{zylaApiKey ? 'KEY SET' : 'API KEY'}</span>
+                      </button>
 
                       {password && (
                         <button
                           onClick={handleSanitizeMemory}
-                          className="text-[11px] text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                          className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/50 hover:border-destructive/30 flex items-center gap-1.5 transition-colors"
                         >
-                          <Trash2 className="size-3" /> Clear
+                          <Trash2 className="size-3.5" /> Clear
                         </button>
                       )}
-                    </div>
-
-                    {/* Password Input */}
-                    <div>
-                      <div className="flex justify-between items-center text-xs font-bold text-primary uppercase tracking-wider mb-2">
-                        <label htmlFor="password-input">TEST PASSWORD / PASSPHRASE</label>
-                        <span className="text-muted-foreground font-normal lowercase">{analysis.length} characters</span>
-                      </div>
-                      <div className="flex rounded-lg border border-primary/40 bg-background/90 focus-within:border-primary">
-                        <input
-                          id="password-input"
-                          type={visible ? 'text' : 'password'}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="min-w-0 flex-1 bg-transparent px-4 py-3 font-mono text-sm outline-none text-foreground placeholder:text-muted-foreground/50"
-                          placeholder="Type or paste a password to test..."
-                          autoComplete="off"
-                          spellCheck={false}
-                        />
-                        <button
-                          className="px-4 text-muted-foreground hover:text-primary transition-colors"
-                          onClick={() => setVisible(!visible)}
-                          aria-label={visible ? 'Hide password' : 'Show password'}
-                        >
-                          {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Rating Badge & Score */}
-                    <div className="flex items-center justify-between pt-2">
-                      <div>
-                        <span className="text-xs text-muted-foreground">SECURITY RATING:</span>
-                        <p className="text-xl font-extrabold" style={{ color: analysis.toneColor }}>
-                          {analysis.rating} ({analysis.strengthScore}/100)
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs text-muted-foreground">SHANNON ENTROPY:</span>
-                        <p className="text-xl font-extrabold text-primary">{analysis.entropyBits} BITS</p>
-                      </div>
-                    </div>
-
-                    {/* Entropy Bar */}
-                    <div>
-                      <div className="h-3 w-full rounded-full bg-muted/60 overflow-hidden flex p-0.5 border border-border">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${Math.max(5, analysis.strengthScore)}%`,
-                            backgroundColor: analysis.toneColor,
-                            boxShadow: `0 0 10px ${analysis.toneColor}`
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                        <span>Critical (0-24)</span>
-                        <span>Moderate (45-64)</span>
-                        <span className="text-emerald-400">Unbreakable (85-100)</span>
-                      </div>
-                    </div>
-
-                    {/* Character Pool Breakdown */}
-                    <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                      <div className="p-2 rounded border border-border bg-muted/30">
-                        <span className="text-[10px] text-muted-foreground block">LOWER</span>
-                        <span className="font-bold text-foreground">{analysis.characterBreakdown.lowercase}</span>
-                      </div>
-                      <div className="p-2 rounded border border-border bg-muted/30">
-                        <span className="text-[10px] text-muted-foreground block">UPPER</span>
-                        <span className="font-bold text-foreground">{analysis.characterBreakdown.uppercase}</span>
-                      </div>
-                      <div className="p-2 rounded border border-border bg-muted/30">
-                        <span className="text-[10px] text-muted-foreground block">DIGITS</span>
-                        <span className="font-bold text-foreground">{analysis.characterBreakdown.numbers}</span>
-                      </div>
-                      <div className="p-2 rounded border border-border bg-muted/30">
-                        <span className="text-[10px] text-muted-foreground block">SYMBOLS</span>
-                        <span className="font-bold text-foreground">{analysis.characterBreakdown.symbols}</span>
-                      </div>
-                    </div>
-
-                    {/* Threat / Pattern Warnings */}
-                    {analysis.patternsDetected.length > 0 && (
-                      <div className="p-4 rounded-xl border border-destructive/50 bg-destructive/10 space-y-2 text-xs">
-                        <p className="font-bold text-destructive flex items-center gap-1.5">
-                          <AlertTriangle className="size-4" /> VULNERABILITY & PATTERN DETECTIONS ({analysis.patternsDetected.length}):
-                        </p>
-                        <div className="space-y-1.5">
-                          {analysis.patternsDetected.map((pat, idx) => (
-                            <div key={idx} className="p-2 rounded bg-card/60 border border-destructive/30">
-                              <p className="font-bold text-destructive text-[11px]">{pat.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{pat.description}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Dynamic Smart Recommendations */}
-                    <div className="p-4 rounded-xl border border-primary/30 bg-muted/20 space-y-2 text-xs">
-                      <p className="font-bold text-primary flex items-center gap-1.5">
-                        <Sparkles className="size-4" /> SMART IMPROVEMENT RECOMMENDATIONS:
-                      </p>
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px]">
-                        {analysis.improvementTips.map((tip, idx) => (
-                          <li key={idx}>{tip}</li>
-                        ))}
-                      </ul>
                     </div>
                   </div>
 
-                  {/* Right Column: Brute-Force Estimates, Generators & Hashes */}
-                  <div className="space-y-6">
-                    {/* Time to Crack Estimates */}
-                    <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md space-y-4">
-                      <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                        <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                          <Cpu className="size-4 text-primary" /> BRUTE FORCE TIME-TO-CRACK
-                        </h3>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          Search Space: {analysis.poolSize}^{analysis.length}
+                  {/* Zyla API Key Inline Drawer */}
+                  {showZylaConfig && (
+                    <div className="p-3.5 rounded-xl border border-primary/40 bg-muted/40 space-y-2 text-xs animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="flex justify-between items-center text-primary font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <Key className="size-3.5" /> ZYLA LABS API KEY (OPTIONAL)
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Stored locally</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={zylaApiKey}
+                          onChange={(e) => setZylaApiKey(e.target.value)}
+                          placeholder="Paste Zyla API key (or set ZYLA_API_KEY in .env.local)"
+                          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary text-foreground font-mono"
+                        />
+                        <button
+                          onClick={() => handleSaveZylaKey(zylaApiKey)}
+                          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
+                        >
+                          SAVE
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Password Input Box */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <label htmlFor="password-input" className="font-bold text-primary tracking-wider">
+                        ENTER PASSWORD TO EVALUATE:
+                      </label>
+                      <span className="text-muted-foreground font-mono">{analysis.length} chars</span>
+                    </div>
+
+                    <div className="flex rounded-xl border-2 border-primary/40 bg-background/95 focus-within:border-primary transition-colors shadow-inner">
+                      <input
+                        id="password-input"
+                        type={visible ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value)
+                          if (zylaResult) setZylaResult(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleQueryZyla()
+                        }}
+                        className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-base outline-none text-foreground placeholder:text-muted-foreground/40"
+                        placeholder="Type or paste any password..."
+                        autoComplete="off"
+                        spellCheck={false}
+                        autoFocus
+                      />
+
+                      <button
+                        className="px-3 text-muted-foreground hover:text-primary transition-colors"
+                        onClick={() => setVisible(!visible)}
+                        aria-label={visible ? 'Hide password' : 'Show password'}
+                      >
+                        {visible ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                      </button>
+
+                      <button
+                        onClick={() => handleQueryZyla()}
+                        disabled={!password || isZylaLoading}
+                        className="px-4 my-1.5 mr-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-40"
+                        title="Query Zyla Labs Password Strength API"
+                      >
+                        {isZylaLoading ? (
+                          <RotateCw className="size-3.5 animate-spin text-primary" />
+                        ) : (
+                          <Globe className="size-3.5 text-primary" />
+                        )}
+                        <span className="hidden sm:inline">{isZylaLoading ? 'Checking...' : 'Zyla API'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Primary Score & Strength Bar */}
+                  <div className="space-y-3 pt-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl font-extrabold" style={{ color: analysis.toneColor }}>
+                          {analysis.rating}
+                        </span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full border border-border bg-muted/60 text-foreground font-bold">
+                          Score: {analysis.strengthScore} / 100
                         </span>
                       </div>
 
-                      <div className="space-y-3 text-xs">
-                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
-                          <div>
-                            <p className="font-bold text-foreground">Online Throttled (10 guesses/sec)</p>
-                            <p className="text-[10px] text-muted-foreground">Standard web login with CAPTCHA & rate limits</p>
-                          </div>
-                          <span className="font-bold text-foreground text-sm">{analysis.crackTimes.onlineThrottled}</span>
-                        </div>
-
-                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
-                          <div>
-                            <p className="font-bold text-foreground">Fast Online Botnet (1,000 guesses/sec)</p>
-                            <p className="text-[10px] text-muted-foreground">Distributed credential stuffing proxies</p>
-                          </div>
-                          <span className="font-bold text-foreground text-sm">{analysis.crackTimes.onlineFast}</span>
-                        </div>
-
-                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
-                          <div>
-                            <p className="font-bold text-emerald-400">8x RTX 4090 GPU Rig (100 Billion H/s)</p>
-                            <p className="text-[10px] text-muted-foreground">Offline Hashcat NTLM / MD5 brute force</p>
-                          </div>
-                          <span className="font-extrabold text-emerald-400 text-sm">{analysis.crackTimes.offlineGpu}</span>
-                        </div>
-
-                        <div className="flex justify-between items-center p-3 rounded-lg border border-border/40 bg-muted/30">
-                          <div>
-                            <p className="font-bold text-cyan-400">Supercomputer Cluster (10 Trillion H/s)</p>
-                            <p className="text-[10px] text-muted-foreground">Massive state-level distributed GPU network</p>
-                          </div>
-                          <span className="font-extrabold text-cyan-400 text-sm">{analysis.crackTimes.supercomputer}</span>
-                        </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span>Entropy: <strong className="text-primary">{analysis.entropyBits} bits</strong></span>
+                        <span>·</span>
+                        <span>Crack Time: <strong className="text-emerald-400">{analysis.crackTimes.offlineGpu}</strong></span>
                       </div>
                     </div>
 
-                    {/* Dual High-Entropy Generator Card */}
-                    <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md space-y-4">
-                      <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="size-4 text-primary" />
-                          <h3 className="font-bold text-base text-foreground">HIGH-ENTROPY GENERATOR</h3>
-                        </div>
+                    {/* Strength Progress Bar */}
+                    <div className="h-3 w-full rounded-full bg-muted/60 overflow-hidden flex p-0.5 border border-border/60">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.max(5, analysis.strengthScore)}%`,
+                          backgroundColor: analysis.toneColor,
+                          boxShadow: `0 0 12px ${analysis.toneColor}`
+                        }}
+                      />
+                    </div>
+                  </div>
 
-                        {/* Generator Mode Switcher */}
-                        <div className="flex gap-1 p-1 rounded-lg bg-muted/60 border border-border/60 text-xs">
-                          <button
-                            onClick={() => {
-                              setGeneratorMode('diceware')
-                              setGeneratedPassword(generateDicewarePassphrase(dicewareWords, '-', false, false))
-                              hackerAudio.playKeypress()
-                            }}
-                            className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                              generatorMode === 'diceware' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            Diceware Phrase
-                          </button>
-                          <button
-                            onClick={() => {
-                              setGeneratorMode('csprng')
-                              setGeneratedPassword(generateStrongPassword(csprngLength))
-                              hackerAudio.playKeypress()
-                            }}
-                            className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                              generatorMode === 'csprng' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            Random CSPRNG
-                          </button>
-                        </div>
-                      </div>
+                  {/* Key Metric Highlights Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/30">
+                      <span className="text-[10px] text-muted-foreground block">GPU CRACK TIME</span>
+                      <span className="font-bold text-foreground text-sm truncate block mt-0.5">{analysis.crackTimes.offlineGpu}</span>
+                    </div>
 
-                      {/* Generated Output Display */}
-                      <div className="flex flex-col sm:flex-row items-center gap-2.5 p-3.5 rounded-lg border border-primary/50 bg-background/90 font-mono text-xs">
-                        <span className="flex-1 font-bold text-emerald-400 select-all tracking-wider break-all">
-                          {generatedPassword}
-                        </span>
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/30">
+                      <span className="text-[10px] text-muted-foreground block">SHANNON ENTROPY</span>
+                      <span className="font-bold text-primary text-sm truncate block mt-0.5">{analysis.entropyBits} bits</span>
+                    </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={handleRegeneratePassword}
-                            className="p-1.5 rounded border border-border hover:border-primary text-muted-foreground hover:text-primary transition-colors"
-                            title="Generate new password"
-                          >
-                            <RefreshCw className="size-3.5" />
-                          </button>
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/30">
+                      <span className="text-[10px] text-muted-foreground block">POOL SIZE</span>
+                      <span className="font-bold text-foreground text-sm truncate block mt-0.5">{analysis.poolSize} chars</span>
+                    </div>
 
-                          <button
-                            onClick={handleCopyGenerated}
-                            className="px-2.5 py-1.5 rounded bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-[11px] font-bold flex items-center gap-1 transition-all"
-                          >
-                            {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                            {copied ? 'COPIED' : 'COPY'}
-                          </button>
+                    <div className="p-3 rounded-xl border border-primary/40 bg-primary/10">
+                      <span className="text-[10px] text-primary block flex items-center gap-1 font-bold">
+                        <Globe className="size-2.5" /> ZYLA API RESULT
+                      </span>
+                      <span className="font-extrabold text-foreground text-sm truncate block mt-0.5 capitalize">
+                        {zylaResult?.data?.result ? `"${zylaResult.data.result}"` : isZylaLoading ? 'Checking...' : 'Ready'}
+                      </span>
+                    </div>
+                  </div>
 
-                          <button
-                            onClick={() => handleApplyGenerated()}
-                            className="px-2.5 py-1.5 rounded bg-muted hover:bg-muted/80 text-foreground border border-border text-[11px] font-bold transition-all"
-                          >
-                            EVALUATE
-                          </button>
-                        </div>
-                      </div>
+                  {/* Security Checks & Warnings Checklist */}
+                  <div className="grid sm:grid-cols-2 gap-3 pt-1 text-xs">
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
+                      analysis.checks.min12 ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-border/60 bg-muted/20 text-muted-foreground'
+                    }`}>
+                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.min12 ? 'text-emerald-400' : 'text-muted-foreground/40'}`} />
+                      <span>At least 12 characters (16+ recommended)</span>
+                    </div>
 
-                      {/* Generator Customization Sliders */}
-                      {generatorMode === 'diceware' ? (
-                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                          <span>Word Count: <strong className="text-primary">{dicewareWords} words</strong></span>
-                          <input
-                            type="range"
-                            min="3"
-                            max="6"
-                            value={dicewareWords}
-                            onChange={(e) => {
-                              const val = Number(e.target.value)
-                              setDicewareWords(val)
-                              setGeneratedPassword(generateDicewarePassphrase(val, '-', false, false))
-                            }}
-                            className="w-36 accent-primary"
-                          />
-                        </div>
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
+                      analysis.checks.casing ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-border/60 bg-muted/20 text-muted-foreground'
+                    }`}>
+                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.casing ? 'text-emerald-400' : 'text-muted-foreground/40'}`} />
+                      <span>Mixed upper & lowercase letters</span>
+                    </div>
+
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
+                      analysis.checks.hasNumber && analysis.checks.hasSymbol ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-border/60 bg-muted/20 text-muted-foreground'
+                    }`}>
+                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.hasNumber && analysis.checks.hasSymbol ? 'text-emerald-400' : 'text-muted-foreground/40'}`} />
+                      <span>Includes numbers & symbols</span>
+                    </div>
+
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
+                      analysis.checks.noCommonPattern ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-destructive/40 bg-destructive/10 text-destructive'
+                    }`}>
+                      {analysis.checks.noCommonPattern ? (
+                        <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
                       ) : (
-                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                          <span>Length: <strong className="text-primary">{csprngLength} chars</strong></span>
-                          <input
-                            type="range"
-                            min="12"
-                            max="32"
-                            value={csprngLength}
-                            onChange={(e) => {
-                              const val = Number(e.target.value)
-                              setCsprngLength(val)
-                              setGeneratedPassword(generateStrongPassword(val))
-                            }}
-                            className="w-36 accent-primary"
-                          />
-                        </div>
+                        <AlertTriangle className="size-4 shrink-0 text-destructive" />
                       )}
+                      <span>{analysis.checks.noCommonPattern ? 'No dictionary / leak patterns' : 'Weak pattern detected'}</span>
+                    </div>
+                  </div>
+
+                  {/* Pattern Warning if detected */}
+                  {analysis.patternsDetected.length > 0 && (
+                    <div className="p-3.5 rounded-xl border border-destructive/50 bg-destructive/10 text-xs space-y-1">
+                      <p className="font-bold text-destructive flex items-center gap-1.5">
+                        <AlertTriangle className="size-4" /> Detected Anti-Patterns:
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {analysis.patternsDetected.map(p => p.name).join(' · ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Quick Generator Box */}
+                  <div className="p-4 rounded-xl border border-primary/30 bg-muted/20 space-y-3 pt-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-primary flex items-center gap-1.5">
+                        <Sparkles className="size-3.5" /> NEED A SECURE PASSWORD?
+                      </span>
+                      <div className="flex gap-1 text-[11px]">
+                        <button
+                          onClick={() => {
+                            setGeneratorMode('diceware')
+                            setGeneratedPassword(generateDicewarePassphrase(4, '-', false, false))
+                            hackerAudio.playKeypress()
+                          }}
+                          className={`px-2 py-0.5 rounded font-bold ${generatorMode === 'diceware' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                        >
+                          Passphrase
+                        </button>
+                        <button
+                          onClick={() => {
+                            setGeneratorMode('csprng')
+                            setGeneratedPassword(generateStrongPassword(16))
+                            hackerAudio.playKeypress()
+                          }}
+                          className={`px-2 py-0.5 rounded font-bold ${generatorMode === 'csprng' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                        >
+                          Random
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Local Cryptographic Hashes & K-Anonymity */}
-                    <div className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md space-y-4">
-                      <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                        <div className="flex items-center gap-2">
-                          <Hash className="size-4 text-cyan-400" />
-                          <h3 className="font-bold text-base text-foreground">CRYPTOGRAPHIC DIGESTS</h3>
-                        </div>
-                        <span className="text-[10px] text-emerald-400 font-bold">CLIENT-SIDE MATH</span>
-                      </div>
-
-                      <div className="space-y-3 text-xs">
-                        <div className="p-2.5 rounded border border-border/40 bg-muted/30">
-                          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                            <span>SHA-256 (FIPS 180-4 Standard):</span>
-                            <span>256 Bits</span>
-                          </div>
-                          <p className="font-mono text-[11px] text-primary break-all select-all font-bold">
-                            {analysis.hashSimulations.sha256}
-                          </p>
-                        </div>
-
-                        <div className="p-2.5 rounded border border-border/40 bg-muted/30">
-                          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                            <span>SHA-1 (K-Anonymity Breach Format):</span>
-                            <span className="text-cyan-400 font-bold">Prefix: {analysis.hashSimulations.kAnonymityPrefix}</span>
-                          </div>
-                          <p className="font-mono text-[11px] text-muted-foreground break-all select-all">
-                            <span className="text-cyan-400 font-bold">{analysis.hashSimulations.kAnonymityPrefix}</span>
-                            <span>{analysis.hashSimulations.kAnonymitySuffix}</span>
-                          </p>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-background font-mono text-xs">
+                      <span className="flex-1 text-emerald-400 font-bold select-all tracking-wider truncate">
+                        {generatedPassword}
+                      </span>
+                      <button
+                        onClick={handleRegeneratePassword}
+                        className="p-1 rounded hover:text-primary text-muted-foreground transition-colors"
+                        title="Generate new"
+                      >
+                        <RefreshCw className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={handleCopyGenerated}
+                        className="px-2.5 py-1 rounded bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-[11px] font-bold flex items-center gap-1 transition-all"
+                      >
+                        {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                        {copied ? 'COPIED' : 'COPY'}
+                      </button>
+                      <button
+                        onClick={() => handleApplyGenerated()}
+                        className="px-2.5 py-1 rounded bg-muted hover:bg-muted/80 text-foreground border border-border text-[11px] font-bold transition-all"
+                      >
+                        TEST IT
+                      </button>
                     </div>
+                  </div>
+
+                  {/* Collapsible Advanced Technical Details (Hashes & API Inspector) */}
+                  <div className="pt-2 border-t border-border/30">
+                    <button
+                      onClick={() => {
+                        setShowApiTelemetry(!showApiTelemetry)
+                        hackerAudio.playKeypress()
+                      }}
+                      className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors font-bold"
+                    >
+                      <Code className="size-3.5" />
+                      <span>{showApiTelemetry ? 'Hide Technical Details & Hashes' : 'Show Advanced Details (Hashes, API Inspector)'}</span>
+                    </button>
+
+                    {showApiTelemetry && (
+                      <div className="mt-3 p-4 rounded-xl border border-border/60 bg-background/90 space-y-3 text-xs animate-in fade-in duration-150">
+                        <div className="grid sm:grid-cols-2 gap-2 text-[11px]">
+                          <div className="p-2 rounded bg-muted/40 border border-border/40">
+                            <span className="text-muted-foreground block text-[10px]">SHA-256 Digest:</span>
+                            <span className="text-primary font-mono select-all break-all">{analysis.hashSimulations.sha256}</span>
+                          </div>
+                          <div className="p-2 rounded bg-muted/40 border border-border/40">
+                            <span className="text-muted-foreground block text-[10px]">SHA-1 (K-Anonymity):</span>
+                            <span className="text-cyan-400 font-mono select-all break-all">{analysis.hashSimulations.sha1}</span>
+                          </div>
+                        </div>
+
+                        {zylaResult && (
+                          <div className="p-2.5 rounded bg-muted/40 border border-border/40 space-y-1 text-[11px]">
+                            <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                              <span className="text-primary font-bold">Zyla API Response Payload:</span>
+                              <button onClick={handleCopyZylaJson} className="hover:text-primary flex items-center gap-1">
+                                {copiedJson ? 'Copied' : 'Copy JSON'}
+                              </button>
+                            </div>
+                            <pre className="text-emerald-400 font-mono overflow-x-auto text-[10px] max-h-24">
+                              {JSON.stringify(zylaResult.data || zylaResult, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
