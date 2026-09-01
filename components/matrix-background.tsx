@@ -3,12 +3,12 @@
 import { useEffect, useRef } from 'react'
 
 interface MatrixProps {
-  theme?: 'light' | 'stealth'
+  theme?: 'light' | 'dark' | string
   active?: boolean
   opacity?: number
 }
 
-export function MatrixBackground({ theme = 'light', active = true, opacity = 0.4 }: MatrixProps) {
+export function MatrixBackground({ theme = 'light', active = true, opacity = 0.35 }: MatrixProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => {
@@ -35,17 +35,13 @@ export function MatrixBackground({ theme = 'light', active = true, opacity = 0.4
     const columns = Math.ceil(canvas.width / fontSize)
     const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -100))
 
-    let colorPrimary = '#10b981'
-    let colorSecondary = '#064e3b'
-
-    if (theme === 'light') {
-      colorPrimary = '#059669'
-      colorSecondary = '#065f46'
-    }
+    const isLight = theme === 'light'
+    const colorPrimary = isLight ? '#059669' : '#00ff88'
+    const fadeBackground = isLight ? 'rgba(248, 250, 252, 0.14)' : 'rgba(7, 13, 10, 0.08)'
 
     const draw = () => {
       // Semi-transparent fade background to leave trailing ghost paths
-      ctx.fillStyle = theme === 'light' ? 'rgba(248, 250, 252, 0.14)' : 'rgba(5, 8, 7, 0.08)'
+      ctx.fillStyle = fadeBackground
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       ctx.font = `${fontSize}px monospace`

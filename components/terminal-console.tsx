@@ -18,7 +18,7 @@ interface HistoryItem {
 }
 
 interface TerminalConsoleProps {
-  onThemeChange?: (theme: 'light' | 'stealth') => void
+  onThemeChange?: (theme: 'dark' | 'light') => void
   currentTheme?: string
 }
 
@@ -83,7 +83,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
               <div><span className="text-emerald-400 font-bold">privacy</span> : Verify zero-knowledge RAM architecture</div>
               <div><span className="text-emerald-400 font-bold">entropy &lt;password&gt;</span> : Shannon mathematical formula output</div>
               <div><span className="text-emerald-400 font-bold">hash &lt;text&gt;</span> : Output MD5, SHA-256 & SHA-1 K-Anonymity digests</div>
-              <div><span className="text-emerald-400 font-bold">theme &lt;light|stealth&gt;</span> : Switch terminal theme preset</div>
+              <div><span className="text-emerald-400 font-bold">theme &lt;dark|light&gt;</span> : Switch between Dark and Light mode</div>
               <div><span className="text-emerald-400 font-bold">sound</span> : Toggle audio sound synthesizer</div>
               <div><span className="text-emerald-400 font-bold">clear</span> : Wipe terminal screen output</div>
             </div>
@@ -283,14 +283,17 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
         }
         break
 
-      case 'theme':
-        if (['light', 'stealth'].includes(args.toLowerCase())) {
-          onThemeChange?.(args.toLowerCase() as any)
-          outputNode = <p className="text-emerald-400 text-xs font-mono">✔ Switched active theme preset to: <span className="font-bold text-primary">{args}</span></p>
+      case 'theme': {
+        const cleanArg = args.trim().toLowerCase()
+        if (cleanArg === 'dark' || cleanArg === 'light' || cleanArg === 'stealth' || cleanArg === 'emerald') {
+          const resolvedTheme: 'dark' | 'light' = cleanArg === 'light' ? 'light' : 'dark'
+          onThemeChange?.(resolvedTheme)
+          outputNode = <p className="text-emerald-400 text-xs font-mono">✔ Switched active theme to: <span className="font-bold text-primary">{resolvedTheme.toUpperCase()} MODE</span></p>
         } else {
-          outputNode = <p className="text-destructive text-xs font-mono">Invalid theme option. Valid themes: light, stealth</p>
+          outputNode = <p className="text-destructive text-xs font-mono">Invalid theme option. Valid themes: dark, light</p>
         }
         break
+      }
 
       case 'sound':
         const state = hackerAudio.toggleMute()

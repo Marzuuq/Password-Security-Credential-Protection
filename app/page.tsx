@@ -41,7 +41,9 @@ import {
   Globe,
   Key,
   Play,
-  Code
+  Code,
+  Sun,
+  Moon
 } from 'lucide-react'
 import {
   analyzePassword,
@@ -62,7 +64,7 @@ import { EducationAcademy } from '@/components/education-academy'
 import { ZeroStorageModal } from '@/components/zero-storage-modal'
 
 type Tab = 'overview' | 'checker' | 'academy' | 'terminal' | 'policies'
-type ThemeOption = 'light' | 'stealth'
+type ThemeOption = 'dark' | 'light'
 type GeneratorMode = 'csprng' | 'diceware'
 
 const rules = [
@@ -81,6 +83,39 @@ const metrics = [
   ['Zero-Storage Guarantee', '100% Client RAM', 'Zero network leaks']
 ]
 
+const tabBanners: Record<Tab, { category: string; title: string; subtitle: string; description: string }> = {
+  overview: {
+    category: 'GLOBAL THREAT MATRIX & SYSTEM STATUS',
+    title: 'CYBER THREAT & ANALYSIS MATRIX',
+    subtitle: 'REPLAY DEFENSE · ACTIVE ATTACK SCENARIOS · AUDIT REPORT',
+    description: 'Monitor global security metrics, visualize credentials replay cascades in the simulator, examine weak pattern catalogs, and review baseline system integrity parameters.'
+  },
+  checker: {
+    category: 'CRYPTOGRAPHIC STRENGTH & EDUCATION HUB',
+    title: 'ZERO-KNOWLEDGE PASSWORD EVALUATOR',
+    subtitle: 'SHANNON ENTROPY · GPU CRACK TIME · CREDENTIAL STUFFING DEFENSE',
+    description: 'Measure true mathematical entropy ($E = L × \\log_2 N$), detect leetspeak & breach patterns, learn why password reuse triggers credential stuffing cascades, and generate Diceware passphrases—without storing or sending any passwords.'
+  },
+  academy: {
+    category: 'CYBERSECURITY ACADEMY & HYGIENE',
+    title: 'DEFENSIVE TRAINING & EXERTION HUB',
+    subtitle: 'INTERACTIVE LEARNING LABS · PATTERN ENCYCLOPEDIA · NIST STANDARDS',
+    description: 'Master credential stuffing defense, understand the security differential between passphrases and passwords, study common pattern classifications, and quiz your cryptographic hygiene.'
+  },
+  terminal: {
+    category: 'LOW-LEVEL SECURE COMMAND MATRIX',
+    title: 'HACKER SHELL & TELEMETRY CONSOLE',
+    subtitle: 'SIMULATED BASH ACCESS · SYSTEM INVENTORY · API VERIFICATION',
+    description: 'Execute in-memory shell macros, inspect telemetry logs, query database configurations, and test network sandboxes directly via a high-fidelity interactive developer console.'
+  },
+  policies: {
+    category: 'IDENTITY COMPLIANCE & POLICY ENGINE',
+    title: 'ENTERPRISE BASELINE SECURITY STANDARDS',
+    subtitle: 'NIST SP 800-63B ALIGNED · COMPLIANCE RULES · COMPLEXITY ENFORCEMENT',
+    description: 'Configure and review system-wide credential policies, verify entropy limits, evaluate character distribution guidelines, and enforce zero-leakage security postures.'
+  }
+}
+
 export default function Page() {
   const [tab, setTab] = useState<Tab>('overview')
   const [password, setPassword] = useState('')
@@ -97,11 +132,11 @@ export default function Page() {
   const [isAudioMuted, setIsAudioMuted] = useState(false)
 
   // Password Generator State
-  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>('diceware')
+  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>('csprng')
   const [csprngLength, setCsprngLength] = useState(16)
   const [dicewareWords, setDicewareWords] = useState(4)
   const [generatedPassword, setGeneratedPassword] = useState(() =>
-    generateDicewarePassphrase(4, '-', false, false)
+    generateStrongPassword(16)
   )
   const [copied, setCopied] = useState(false)
 
@@ -200,7 +235,7 @@ export default function Page() {
 
   const nav = [
     ['overview', 'Threat Matrix', LayoutDashboard],
-    ['checker', 'Zero-Knowledge Checker', KeyRound],
+    ['checker', 'Password Checker', KeyRound],
     ['academy', 'Cyber Security Academy', GraduationCap],
     ['terminal', 'Hacker Shell Console', TerminalIcon],
     ['policies', 'Policy & Compliance', Network]
@@ -230,7 +265,7 @@ export default function Page() {
               <LockKeyhole className="size-6" />
             </div>
             <div>
-              <p className="font-mono text-base font-extrabold tracking-wider text-primary glow-text">PASSGUARD</p>
+              <p className="font-display text-base font-extrabold tracking-wider text-primary glow-text">PASSGUARD</p>
               <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-mono">Cyber Console v3.8</p>
             </div>
           </div>
@@ -270,32 +305,37 @@ export default function Page() {
           {/* Hacker Controls Box */}
           <div className="mt-6 rounded-xl border border-primary/30 bg-muted/40 p-4 font-mono space-y-3">
             <div className="flex items-center justify-between text-xs text-primary font-bold">
-              <span className="flex items-center gap-1.5"><Sparkles className="size-3.5" /> THEME PRESET</span>
+              <span className="flex items-center gap-1.5"><Sparkles className="size-3.5" /> THEME</span>
+              <span className="text-[10px] uppercase text-muted-foreground font-mono">{theme} MODE</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {(
-                [
-                  ['light', 'Light Mode', 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]'],
-                  ['stealth', 'Stealth Dark', 'bg-emerald-900/30 text-emerald-400 border-emerald-500/50']
-                ] as const
-              ).map(([id, label, colorCls]) => (
-                <button
-                  key={id}
-                  onClick={() => { setTheme(id); hackerAudio.playKeypress() }}
-                  className={`px-2 py-2 text-[11px] rounded-lg border text-center transition-all ${
-                    theme === id ? `${colorCls} font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]` : 'border-border/60 text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+              <button
+                onClick={() => { setTheme('dark'); hackerAudio.playKeypress() }}
+                className={`px-3 py-2 text-xs rounded-lg border flex items-center justify-center gap-1.5 transition-all ${
+                  theme === 'dark'
+                    ? 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,136,0.25)]'
+                    : 'border-border/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                }`}
+              >
+                <Moon className="size-3.5" /> Dark
+              </button>
+              <button
+                onClick={() => { setTheme('light'); hackerAudio.playKeypress() }}
+                className={`px-3 py-2 text-xs rounded-lg border flex items-center justify-center gap-1.5 transition-all ${
+                  theme === 'light'
+                    ? 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,136,0.25)]'
+                    : 'border-border/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                }`}
+              >
+                <Sun className="size-3.5" /> Light
+              </button>
             </div>
 
             <div className="pt-2 border-t border-border/40 space-y-2">
               <button
                 onClick={() => setMatrixEnabled(!matrixEnabled)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] rounded border ${
-                  matrixEnabled ? 'border-primary/50 text-primary bg-primary/10' : 'border-border text-muted-foreground'
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] rounded border transition-all ${
+                  matrixEnabled ? 'border-primary/50 text-primary bg-primary/10 font-bold' : 'border-border text-muted-foreground'
                 }`}
               >
                 <span className="flex items-center gap-1.5"><Binary className="size-3.5" /> Matrix Rain Canvas</span>
@@ -340,16 +380,38 @@ export default function Page() {
                 <p className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
                   <Radio className="size-3 text-primary animate-pulse" /> CYBER CONSOLE / SECURE EVALUATOR
                 </p>
-                <h1 className="text-lg md:text-xl font-bold font-mono text-foreground flex items-center gap-2">
+                <h1 className="text-lg md:text-xl font-extrabold font-display text-foreground flex items-center gap-2 tracking-wide">
                   PASSWORD SECURITY & THREAT EVALUATOR
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] border border-primary/40 bg-primary/10 text-primary font-mono font-normal">
+                  <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] border border-primary/40 bg-primary/10 text-primary font-mono font-normal tracking-normal uppercase">
                     ZERO-STORAGE VERIFIED
                   </span>
                 </h1>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 font-mono">
+            <div className="flex items-center gap-2 md:gap-3 font-mono">
+              {/* Light/Dark Toggle in Header */}
+              <button
+                onClick={() => {
+                  setTheme(theme === 'dark' ? 'light' : 'dark')
+                  hackerAudio.playKeypress()
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-primary/30 bg-muted/40 hover:bg-muted text-primary transition-colors flex items-center gap-1.5 text-xs font-bold"
+                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="size-3.5 text-amber-400" />
+                    <span className="hidden sm:inline text-[11px]">LIGHT</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="size-3.5 text-primary" />
+                    <span className="hidden sm:inline text-[11px]">DARK</span>
+                  </>
+                )}
+              </button>
+
               <button
                 onClick={toggleSound}
                 className="p-2 rounded-lg border border-primary/30 bg-muted/40 hover:bg-muted text-primary transition-colors"
@@ -372,17 +434,17 @@ export default function Page() {
           <div className="mx-auto max-w-[1500px] w-full p-5 md:p-8 flex-1">
             {/* Banner Header */}
             <div className="mb-8 font-mono">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                <Zap className="size-4" /> CRYPTOGRAPHIC STRENGTH & EDUCATION HUB
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary font-display">
+                <Zap className="size-4" /> {tabBanners[tab].category}
               </div>
-              <h2 className="mt-2 text-balance text-2xl md:text-4xl font-extrabold font-mono tracking-tight text-foreground">
-                ZERO-KNOWLEDGE PASSWORD EVALUATOR<br />
-                <span className="text-muted-foreground text-xl md:text-3xl font-semibold">
-                  SHANNON ENTROPY · GPU CRACK TIME · CREDENTIAL STUFFING DEFENSE
+              <h2 className="mt-2 text-balance text-2xl md:text-4xl font-extrabold font-display tracking-tight text-foreground">
+                {tabBanners[tab].title}<br />
+                <span className="text-muted-foreground text-xl md:text-3xl font-semibold font-mono block mt-1 tracking-normal">
+                  {tabBanners[tab].subtitle}
                 </span>
               </h2>
-              <p className="mt-3 max-w-3xl text-xs md:text-sm leading-6 text-muted-foreground">
-                Measure true mathematical entropy ($E = L \times \log_2 N$), detect leetspeak & breach patterns, learn why password reuse triggers credential stuffing cascades, and generate Diceware passphrases—without storing or sending any passwords.
+              <p className="mt-3 max-w-3xl text-xs md:text-sm leading-6 text-muted-foreground font-sans">
+                {tabBanners[tab].description}
               </p>
             </div>
 
@@ -504,7 +566,7 @@ export default function Page() {
               </div>
             )}
 
-            {/* TAB 2: ZERO-KNOWLEDGE PASSWORD CHECKER (SIMPLIFIED & CLEAN) */}
+            {/* TAB 2: PASSWORD CHECKER (SIMPLIFIED & CLEAN) */}
             {tab === 'checker' && (
               <section className="max-w-4xl mx-auto space-y-6 font-mono">
                 {/* Main Evaluation Card */}

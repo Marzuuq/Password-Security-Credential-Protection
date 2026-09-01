@@ -1,10 +1,11 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Space_Grotesk, Share_Tech_Mono, Orbitron } from 'next/font/google'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
-const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' })
+const shareTechMono = Share_Tech_Mono({ weight: '400', subsets: ['latin'], variable: '--font-share-tech-mono' })
+const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' })
 
 export const metadata: Metadata = {
   title: 'Passguard | Password Security Console',
@@ -21,7 +22,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="bg-background">
-      <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${spaceGrotesk.variable} ${shareTechMono.variable} ${orbitron.variable} antialiased`}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
