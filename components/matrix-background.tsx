@@ -8,8 +8,14 @@ interface MatrixProps {
   opacity?: number
 }
 
-export function MatrixBackground({ theme = 'light', active = true, opacity = 0.35 }: MatrixProps) {
+export function MatrixBackground({ theme = 'light', active = true, opacity }: MatrixProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  const effectiveOpacity = opacity !== undefined 
+    ? opacity 
+    : theme === 'light' 
+      ? 0.08 
+      : 0.18
 
   useEffect(() => {
     if (!active) return
@@ -27,40 +33,38 @@ export function MatrixBackground({ theme = 'light', active = true, opacity = 0.3
     handleResize()
     window.addEventListener('resize', handleResize)
 
-    // Matrix characters: Katakana, numbers, symbols, hex
-    const charString = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン0123456789ABCDEF<>[]{}*+=#/\\:;~_!$'
+    // Character set: Clean hex & binary glyphs
+    const charString = '0123456789ABCDEF<>[]{}*+=#~_!$@&%'
     const characters = charString.split('')
 
     const fontSize = 14
     const columns = Math.ceil(canvas.width / fontSize)
-    const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -100))
+    const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -80))
 
     const isLight = theme === 'light'
-    const colorPrimary = isLight ? '#059669' : '#00ff88'
-    const fadeBackground = isLight ? 'rgba(248, 250, 252, 0.14)' : 'rgba(7, 13, 10, 0.08)'
+    const colorPrimary = isLight ? '#059669' : '#10b981'
+    const fadeBackground = isLight ? 'rgba(248, 250, 252, 0.18)' : 'rgba(10, 15, 26, 0.12)'
 
     const draw = () => {
-      // Semi-transparent fade background to leave trailing ghost paths
       ctx.fillStyle = fadeBackground
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      ctx.font = `${fontSize}px monospace`
+      ctx.font = `${fontSize}px var(--font-mono), monospace`
 
       for (let i = 0; i < drops.length; i++) {
         const char = characters[Math.floor(Math.random() * characters.length)]
         const x = i * fontSize
         const y = drops[i] * fontSize
 
-        // Head character is glowing bright white (or dark slate for light mode)
-        if (Math.random() > 0.9) {
-          ctx.fillStyle = theme === 'light' ? '#0f172a' : '#ffffff'
+        if (Math.random() > 0.95) {
+          ctx.fillStyle = isLight ? '#0f172a' : '#ffffff'
         } else {
           ctx.fillStyle = colorPrimary
         }
 
         ctx.fillText(char, x, y)
 
-        if (y > canvas.height && Math.random() > 0.975) {
+        if (y > canvas.height && Math.random() > 0.985) {
           drops[i] = 0
         }
         drops[i]++
@@ -82,8 +86,9 @@ export function MatrixBackground({ theme = 'light', active = true, opacity = 0.3
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-500"
-      style={{ opacity }}
+      className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-700"
+      style={{ opacity: effectiveOpacity }}
+      aria-hidden="true"
     />
   )
 }

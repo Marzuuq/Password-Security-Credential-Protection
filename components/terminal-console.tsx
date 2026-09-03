@@ -6,9 +6,9 @@ import {
   generateDicewarePassphrase,
   ANTI_PATTERNS
 } from '@/lib/password-security'
-import { analyzePasswordWithZyla, ZYLA_API_ENDPOINT } from '@/lib/zyla-api'
+import { analyzePasswordWithZyla } from '@/lib/zyla-api'
 import { hackerAudio } from '@/lib/hacker-audio'
-import { Terminal, Send, Trash2, Cpu, ShieldAlert, KeyRound, Lock, Sparkles, ShieldCheck, Globe } from 'lucide-react'
+import { Terminal, Send, Trash2, Sparkles, Check, Copy } from 'lucide-react'
 
 interface HistoryItem {
   id: string
@@ -22,15 +22,15 @@ interface TerminalConsoleProps {
   currentTheme?: string
 }
 
-const ASCII_LOGO = `
-  ██████╗  █████╗ ███████╗███████╗██╗   ██╗██████╗ 
-  ██╔══██╗██╔══██╗██╔════╝██╔════╝██║   ██║██╔══██╗
-  ██████╔╝███████║███████╗███████╗██║   ██║██████╔╝
-  ██╔═══╝ ██╔══██║╚════██║╚════██║██║   ██║██╔══██╗
-  ██║     ██║  ██║███████║███████║╚██████╔╝██║  ██║
-  ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝
-  [HACKER TERMINAL v3.8.0 - ZERO-STORAGE SHELL ACCESS]
-`
+const COMMAND_SUGGESTIONS = [
+  'help',
+  'eval P@ssw0rd2024!',
+  'diceware 4',
+  'stuffing',
+  'antipatterns',
+  'privacy',
+  'clear'
+]
 
 export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: TerminalConsoleProps) {
   const [input, setInput] = useState('')
@@ -39,11 +39,16 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
       id: 'welcome',
       command: 'sys.init --verbose --zero-storage',
       output: (
-        <div className="space-y-2 text-xs font-mono">
-          <pre className="text-primary glow-text font-bold leading-none hidden sm:block">{ASCII_LOGO}</pre>
-          <p className="text-emerald-400">✔ SYSTEM INITIALIZED: Security Console Kernel v3.8.0-release</p>
-          <p className="text-cyan-400">🔒 ZERO-STORAGE ACTIVE: Evaluated 100% in browser volatile RAM.</p>
-          <p className="text-muted-foreground">Type <span className="text-primary font-bold">help</span> to view available commands, <span className="text-primary font-bold">eval &lt;password&gt;</span> to scan entropy, <span className="text-primary font-bold">zyla &lt;password&gt;</span> to test Zyla Labs Cloud API, or <span className="text-primary font-bold">diceware</span> to generate a passphrase.</p>
+        <div className="space-y-1.5 text-xs font-mono">
+          <p className="text-emerald-500 dark:text-emerald-400 font-semibold">
+            ✔ Passguard Security Console Kernel v3.8.0-release initialized
+          </p>
+          <p className="text-sky-500 dark:text-sky-400">
+            🔒 Client-Side Sandbox Active: All evaluations execute strictly in volatile browser RAM.
+          </p>
+          <p className="text-muted-foreground pt-1">
+            Type <span className="text-primary font-semibold">help</span> to view commands, or click any suggestion pill below.
+          </p>
         </div>
       ),
       timestamp: new Date().toLocaleTimeString()
@@ -51,6 +56,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
   ])
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -71,21 +77,18 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
     switch (cmd) {
       case 'help':
         outputNode = (
-          <div className="space-y-1 text-xs font-mono">
-            <p className="text-primary font-bold">Available Cyber Shell Commands:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-              <div><span className="text-emerald-400 font-bold">eval &lt;password&gt;</span> : Deep Shannon entropy & threat analysis</div>
-              <div><span className="text-emerald-400 font-bold">zyla &lt;password&gt;</span> : Query Zyla Labs Cloud API (GET endpoint #2114)</div>
-              <div><span className="text-emerald-400 font-bold">cracktime &lt;password&gt;</span> : GPU & supercomputer crack time estimate</div>
-              <div><span className="text-emerald-400 font-bold">diceware [count]</span> : Generate 3-6 word memorable passphrase</div>
-              <div><span className="text-emerald-400 font-bold">antipatterns</span> : Show top 6 dangerous weak password habits</div>
-              <div><span className="text-emerald-400 font-bold">stuffing</span> : Explain credential stuffing & password reuse risks</div>
-              <div><span className="text-emerald-400 font-bold">privacy</span> : Verify zero-knowledge RAM architecture</div>
-              <div><span className="text-emerald-400 font-bold">entropy &lt;password&gt;</span> : Shannon mathematical formula output</div>
-              <div><span className="text-emerald-400 font-bold">hash &lt;text&gt;</span> : Output MD5, SHA-256 & SHA-1 K-Anonymity digests</div>
-              <div><span className="text-emerald-400 font-bold">theme &lt;dark|light&gt;</span> : Switch between Dark and Light mode</div>
-              <div><span className="text-emerald-400 font-bold">sound</span> : Toggle audio sound synthesizer</div>
-              <div><span className="text-emerald-400 font-bold">clear</span> : Wipe terminal screen output</div>
+          <div className="space-y-2 text-xs font-mono">
+            <p className="text-primary font-bold">Available Security Console Commands:</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 mt-1 text-muted-foreground">
+              <div><span className="text-foreground font-semibold">eval &lt;password&gt;</span> &mdash; Full Shannon entropy & GPU crack time analysis</div>
+              <div><span className="text-foreground font-semibold">zyla &lt;password&gt;</span> &mdash; Query Zyla Labs cloud security API</div>
+              <div><span className="text-foreground font-semibold">diceware [count]</span> &mdash; Generate 3-6 word memorable passphrase</div>
+              <div><span className="text-foreground font-semibold">antipatterns</span> &mdash; List top weak password patterns & fixes</div>
+              <div><span className="text-foreground font-semibold">stuffing</span> &mdash; Explain credential stuffing risks</div>
+              <div><span className="text-foreground font-semibold">privacy</span> &mdash; View zero-knowledge sandbox architecture</div>
+              <div><span className="text-foreground font-semibold">hash &lt;text&gt;</span> &mdash; Generate SHA-256 & SHA-1 digests</div>
+              <div><span className="text-foreground font-semibold">theme &lt;dark|light&gt;</span> &mdash; Toggle visual theme</div>
+              <div><span className="text-foreground font-semibold">clear</span> &mdash; Clear terminal screen buffer</div>
             </div>
           </div>
         )
@@ -100,19 +103,19 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
           hackerAudio.playScan()
           const res = analyzePassword(args)
           outputNode = (
-            <div className="space-y-2 text-xs font-mono border-l-2 border-primary/50 pl-3 py-1">
+            <div className="space-y-2 text-xs font-mono border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-lg">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Target:</span>
-                <span className="text-foreground bg-muted/40 px-2 py-0.5 rounded">{'*'.repeat(res.length)}</span>
+                <span className="text-foreground bg-muted px-2 py-0.5 rounded font-mono">{'*'.repeat(res.length)}</span>
                 <span className="font-bold" style={{ color: res.toneColor }}>[{res.rating}]</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-muted-foreground">
                 <div>Length: <span className="text-foreground font-bold">{res.length}</span></div>
                 <div>Entropy: <span className="text-primary font-bold">{res.entropyBits} bits</span></div>
-                <div>Pool Size: <span className="text-foreground font-bold">{res.poolSize}</span></div>
+                <div>Pool: <span className="text-foreground font-bold">{res.poolSize} chars</span></div>
                 <div>Score: <span className="text-foreground font-bold">{res.strengthScore}/100</span></div>
               </div>
-              <div className="text-emerald-400">
+              <div className="text-emerald-500 dark:text-emerald-400 space-y-0.5">
                 <p>Crack Time (8x RTX 4090 GPU Rig): <span className="text-foreground font-bold">{res.crackTimes.offlineGpu}</span></p>
                 <p>Crack Time (Supercomputer): <span className="text-foreground font-bold">{res.crackTimes.supercomputer}</span></p>
               </div>
@@ -121,7 +124,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
                   ⚠ Threats: {res.patternsDetected.map(p => p.name).join(' | ')}
                 </div>
               ) : (
-                <div className="text-emerald-400">✔ Zero common leak patterns matched.</div>
+                <div className="text-emerald-500 dark:text-emerald-400">✔ Zero common breach patterns matched.</div>
               )}
             </div>
           )
@@ -129,9 +132,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
         break
 
       case 'zyla':
-      case 'zylalabs':
       case 'api':
-      case 'apicheck':
         if (!args) {
           outputNode = <p className="text-destructive font-mono text-xs">Error: Missing password. Usage: zyla &lt;password&gt;</p>
         } else {
@@ -140,68 +141,50 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
           if (zylaRes.success) {
             hackerAudio.playSuccess()
             outputNode = (
-              <div className="space-y-2 text-xs font-mono border-l-2 border-emerald-400 pl-3 py-1">
+              <div className="space-y-2 text-xs font-mono border-l-2 border-emerald-500 pl-3 py-1 bg-muted/20 rounded-r-lg">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Endpoint:</span>
-                  <span className="text-emerald-400 font-bold">GET /api/2254/.../2114/password+analysis</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">
+                  <span className="text-emerald-500 dark:text-emerald-400 font-bold">Zyla Labs Password Analysis API</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                     {zylaRes.status || 200} OK ({zylaRes.latencyMs}ms)
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Mode:</span>
-                  <span className={zylaRes.mode === 'live_api' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-                    {zylaRes.mode === 'live_api' ? '⚡ LIVE ZYLA CLOUD' : '🧪 SANDBOX SIMULATION'}
-                  </span>
-                  <span className="text-muted-foreground">| Result:</span>
-                  <span className="text-primary font-bold uppercase tracking-wider glow-text">
-                    &quot;{zylaRes.data?.result || 'Evaluated'}&quot;
-                  </span>
-                </div>
-                <div className="p-2 rounded bg-background/80 border border-border/40 text-[11px] text-muted-foreground select-all">
-                  <code>{JSON.stringify(zylaRes.data || zylaRes, null, 2)}</code>
-                </div>
-                {zylaRes.note && (
-                  <p className="text-[10px] text-amber-400">ℹ {zylaRes.note}</p>
-                )}
+                <pre className="text-emerald-500 dark:text-emerald-400 overflow-x-auto text-[11px] bg-background/50 p-2 rounded">
+                  {JSON.stringify(zylaRes.data, null, 2)}
+                </pre>
               </div>
             )
           } else {
-            hackerAudio.playAlert()
             outputNode = (
-              <div className="space-y-1 text-xs font-mono text-destructive border-l-2 border-destructive pl-3 py-1">
-                <p className="font-bold">❌ ZYLA API ERROR:</p>
-                <p>{zylaRes.error || 'Failed to communicate with Zyla Labs endpoint'}</p>
-                <p className="text-[10px] text-muted-foreground">Ensure your API key is valid or check network connection.</p>
-              </div>
+              <p className="text-destructive font-mono text-xs">
+                Zyla API Notice: {zylaRes.error || 'Request failed. Provide an API key in the Checker tab.'}
+              </p>
             )
           }
         }
         break
 
       case 'diceware':
-      case 'passphrase':
         const wordCount = Math.min(6, Math.max(3, parseInt(args) || 4))
         const phrase = generateDicewarePassphrase(wordCount, '-', false, false)
-        hackerAudio.playSuccess()
         outputNode = (
-          <div className="space-y-1.5 text-xs font-mono border-l-2 border-emerald-500 pl-3 py-1">
-            <p className="text-emerald-400 font-bold">✨ Generated Diceware Passphrase ({wordCount} words):</p>
-            <p className="text-primary font-bold text-sm select-all tracking-wider">{phrase}</p>
-            <p className="text-muted-foreground">Length: {phrase.length} chars | Estimated Entropy: ~{Math.round(wordCount * 12.9)} bits | Memory Rating: Instant Visual Recall</p>
+          <div className="space-y-1 text-xs font-mono border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-lg">
+            <p className="text-muted-foreground">Generated {wordCount}-Word Diceware Passphrase:</p>
+            <p className="text-primary font-bold text-sm tracking-wide select-all">{phrase}</p>
+            <p className="text-[11px] text-emerald-500 dark:text-emerald-400">Entropy: ~{(wordCount * 12.92).toFixed(1)} bits &middot; Search Space: 7,776^{wordCount} combos</p>
           </div>
         )
         break
 
       case 'antipatterns':
-      case 'patterns':
         outputNode = (
           <div className="space-y-2 text-xs font-mono">
-            <p className="text-primary font-bold">Top Dangerous Weak Password Anti-Patterns:</p>
+            <p className="text-primary font-bold">Common Weak Password Anti-Patterns:</p>
             <div className="space-y-1.5 text-muted-foreground">
-              {ANTI_PATTERNS.map((p, idx) => (
-                <div key={p.id}>
-                  <span className="text-emerald-400 font-bold">{idx + 1}. {p.title}</span> : {p.subtitle} (GPU Crack: <span className="text-destructive font-bold">{p.estimatedCrackTime}</span>)
+              {ANTI_PATTERNS.slice(0, 4).map(p => (
+                <div key={p.id} className="p-2 rounded border border-border bg-muted/30">
+                  <p className="font-semibold text-foreground">{p.title} &mdash; <span className="text-destructive font-mono">{p.example}</span></p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{p.whyWeak}</p>
                 </div>
               ))}
             </div>
@@ -210,94 +193,52 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
         break
 
       case 'stuffing':
-      case 'reuse':
         outputNode = (
-          <div className="space-y-1.5 text-xs font-mono border-l-2 border-destructive pl-3 py-1">
-            <p className="text-destructive font-bold">⚠ THE CREDENTIAL STUFFING ATTACK MECHANISM:</p>
-            <p className="text-muted-foreground">1. Attackers obtain leaked email+password databases from compromised minor websites.</p>
-            <p className="text-muted-foreground">2. Automated botnets (SilverBullet/Sentry MBA) replay combos against banks, emails, cloud storage.</p>
-            <p className="text-muted-foreground">3. Reusing one password across 10 sites means 1 breach compromises all 10 accounts.</p>
-            <p className="text-emerald-400 font-bold">✔ Solution: Use a unique 16+ char passphrase per service in a password manager.</p>
+          <div className="space-y-1.5 text-xs font-mono p-3 rounded-lg border border-border bg-muted/30">
+            <p className="text-primary font-bold">Credential Stuffing Explained:</p>
+            <p className="text-muted-foreground leading-relaxed text-[11px]">
+              Over 80% of data breaches originate from stolen credentials reused across websites. Automated bots take leaked username/password combos from compromised sites and replay them against banking, email, and corporate systems. Always use unique passwords.
+            </p>
           </div>
         )
         break
 
       case 'privacy':
-      case 'zerostorage':
         outputNode = (
-          <div className="space-y-1 text-xs font-mono border-l-2 border-cyan-400 pl-3 py-1">
-            <p className="text-cyan-400 font-bold">🔒 ZERO-KNOWLEDGE & ZERO-STORAGE VERIFICATION:</p>
-            <p className="text-muted-foreground">• In-Memory Only: Evaluated strictly in local JavaScript volatile memory.</p>
-            <p className="text-muted-foreground">• Zero Transmission: 0 HTTP POST/GET requests dispatched across the network.</p>
-            <p className="text-muted-foreground">• K-Anonymity Model: Explains how 5-character SHA-1 hash prefixes check leaks anonymously.</p>
+          <div className="space-y-1.5 text-xs font-mono p-3 rounded-lg border border-border bg-muted/30">
+            <p className="text-primary font-bold">Zero-Knowledge Verification Architecture:</p>
+            <p className="text-muted-foreground text-[11px]">
+              Evaluated strictly in browser RAM. Zero network transmissions. Zero cookies or persistent storage.
+            </p>
           </div>
         )
         break
 
-      case 'cracktime':
-        if (!args) {
-          outputNode = <p className="text-destructive font-mono text-xs">Usage: cracktime &lt;password&gt;</p>
-        } else {
-          const res = analyzePassword(args)
-          outputNode = (
-            <div className="space-y-1 text-xs font-mono text-emerald-400">
-              <p className="text-primary font-bold">⚡ BRUTE FORCE TIME-TO-CRACK ESTIMATOR:</p>
-              <p>• Throttled Online (10 req/s): <span className="text-foreground">{res.crackTimes.onlineThrottled}</span></p>
-              <p>• Fast Online Botnet (1,000 req/s): <span className="text-foreground">{res.crackTimes.onlineFast}</span></p>
-              <p>• 8x RTX 4090 GPU Rig (100 Billion H/s): <span className="text-foreground font-bold">{res.crackTimes.offlineGpu}</span></p>
-              <p>• Quantum/Supercomputer Cluster: <span className="text-foreground font-bold">{res.crackTimes.supercomputer}</span></p>
-            </div>
-          )
-        }
-        break
-
-      case 'entropy':
-        if (!args) {
-          outputNode = <p className="text-destructive font-mono text-xs">Usage: entropy &lt;password&gt;</p>
-        } else {
-          const res = analyzePassword(args)
-          outputNode = (
-            <div className="space-y-1 text-xs font-mono">
-              <p>Password Length (L): <span className="text-primary font-bold">{res.length}</span></p>
-              <p>Alphabet Character Pool (N): <span className="text-primary font-bold">{res.poolSize}</span></p>
-              <p>Calculated Shannon Entropy E = L × log2(N): <span className="text-emerald-400 font-bold">{res.entropyBits} bits</span></p>
-              <p className="text-muted-foreground">Note: 60+ bits is recommended for strong defense against offline GPU dictionary attacks.</p>
-            </div>
-          )
-        }
-        break
-
       case 'hash':
         if (!args) {
-          outputNode = <p className="text-destructive font-mono text-xs">Usage: hash &lt;string&gt;</p>
+          outputNode = <p className="text-destructive font-mono text-xs">Error: Missing string. Usage: hash &lt;text&gt;</p>
         } else {
           const res = analyzePassword(args)
           outputNode = (
-            <div className="space-y-1 text-xs font-mono text-muted-foreground">
-              <p>MD5: <span className="text-primary select-all">{res.hashSimulations.md5}</span></p>
-              <p>SHA-256: <span className="text-primary select-all">{res.hashSimulations.sha256}</span></p>
-              <p>SHA-1 (K-Anonymity): <span className="text-emerald-400 select-all">{res.hashSimulations.sha1}</span></p>
-              <p>K-Anonymity 5-char Prefix: <span className="text-cyan-400 font-bold">{res.hashSimulations.kAnonymityPrefix}</span></p>
+            <div className="space-y-1.5 text-xs font-mono border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-lg">
+              <div><span className="text-muted-foreground">Input:</span> <span className="text-foreground">{args}</span></div>
+              <div><span className="text-muted-foreground">SHA-256:</span> <span className="text-primary select-all break-all">{res.hashSimulations.sha256}</span></div>
+              <div><span className="text-muted-foreground">SHA-1 (K-Anon Prefix):</span> <span className="text-sky-500 dark:text-sky-400 select-all break-all">{res.hashSimulations.sha1}</span></div>
             </div>
           )
         }
         break
 
-      case 'theme': {
-        const cleanArg = args.trim().toLowerCase()
-        if (cleanArg === 'dark' || cleanArg === 'light' || cleanArg === 'stealth' || cleanArg === 'emerald') {
-          const resolvedTheme: 'dark' | 'light' = cleanArg === 'light' ? 'light' : 'dark'
-          onThemeChange?.(resolvedTheme)
-          outputNode = <p className="text-emerald-400 text-xs font-mono">✔ Switched active theme to: <span className="font-bold text-primary">{resolvedTheme.toUpperCase()} MODE</span></p>
+      case 'theme':
+        if (args.includes('dark')) {
+          onThemeChange?.('dark')
+          outputNode = <p className="text-emerald-500 font-mono text-xs">Theme switched to Dark mode.</p>
+        } else if (args.includes('light')) {
+          onThemeChange?.('light')
+          outputNode = <p className="text-emerald-500 font-mono text-xs">Theme switched to Light mode.</p>
         } else {
-          outputNode = <p className="text-destructive text-xs font-mono">Invalid theme option. Valid themes: dark, light</p>
+          outputNode = <p className="text-muted-foreground font-mono text-xs">Current theme: {currentTheme}. Usage: theme dark | theme light</p>
         }
-        break
-      }
-
-      case 'sound':
-        const state = hackerAudio.toggleMute()
-        outputNode = <p className="text-emerald-400 text-xs font-mono">Audio feedback sound synth is now: <span className="font-bold">{state ? 'ENABLED 🔊' : 'MUTED 🔇'}</span></p>
         break
 
       case 'clear':
@@ -307,89 +248,114 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
         return
 
       default:
-        outputNode = <p className="text-destructive text-xs font-mono">Command not recognized: &apos;{cmd}&apos;. Type &apos;help&apos; for command list.</p>
+        outputNode = (
+          <p className="text-destructive font-mono text-xs">
+            Command not recognized: &quot;{cmd}&quot;. Type <span className="text-primary font-semibold">help</span> for available commands.
+          </p>
+        )
         break
     }
 
     setHistory(prev => [
       ...prev,
       {
-        id: Math.random().toString(36).substring(7),
-        command: cmdStr,
+        id: Math.random().toString(36).substring(2, 9),
+        command: trimmed,
         output: outputNode,
         timestamp: new Date().toLocaleTimeString()
       }
     ])
-
     setInput('')
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    handleCommand(input)
+  }
+
   return (
-    <div className="flex flex-col h-[560px] rounded-xl border border-primary/40 bg-card/90 shadow-[0_0_20px_rgba(0,255,102,0.1)] backdrop-blur-md overflow-hidden font-mono">
-      {/* Terminal Titlebar */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/60 border-b border-primary/30">
+    <div className="w-full rounded-2xl border border-border bg-card shadow-lg overflow-hidden flex flex-col">
+      {/* Terminal Window Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-red-500/80 inline-block" />
+            <span className="size-3 rounded-full bg-rose-500/80 inline-block" />
             <span className="size-3 rounded-full bg-amber-500/80 inline-block" />
             <span className="size-3 rounded-full bg-emerald-500/80 inline-block" />
           </div>
-          <span className="text-xs font-bold text-primary flex items-center gap-1 ml-2">
-            <Terminal className="size-3.5" /> root@passguard-sec:~#
+          <span className="text-xs font-mono font-medium text-muted-foreground ml-2 flex items-center gap-1.5">
+            <Terminal className="size-3.5 text-primary" /> passguard-shell &mdash; 80x24
           </span>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-          <span className="hidden sm:inline-flex items-center gap-1 text-cyan-400">
-            <ShieldCheck className="size-3" /> ZERO-STORAGE MODE
-          </span>
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => { setHistory([]); hackerAudio.playKeypress() }}
-            className="p-1 hover:text-primary transition-colors"
-            title="Clear terminal screen"
+            onClick={() => {
+              setHistory([])
+              hackerAudio.playKeypress()
+            }}
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs flex items-center gap-1"
+            title="Clear buffer"
           >
             <Trash2 className="size-3.5" />
+            <span className="hidden sm:inline text-[11px]">Clear</span>
           </button>
         </div>
       </div>
 
-      {/* Output Console Body */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs font-mono custom-scrollbar">
-        {history.map((item) => (
-          <div key={item.id} className="space-y-1">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-primary font-bold">root@passguard:~#</span>
-              <span className="text-foreground">{item.command}</span>
-              <span className="text-[10px] ml-auto opacity-50">{item.timestamp}</span>
+      {/* Terminal Output Area */}
+      <div className="p-4 md:p-6 space-y-4 min-h-[380px] max-h-[500px] overflow-y-auto custom-scrollbar font-mono bg-background/60">
+        {history.map(item => (
+          <div key={item.id} className="space-y-1 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
+              <span className="text-primary font-bold">&gt;</span>
+              <span className="text-foreground font-semibold">{item.command}</span>
+              <span className="text-[10px] text-muted-foreground/60 ml-auto">{item.timestamp}</span>
             </div>
-            <div className="pl-4">{item.output}</div>
+            <div className="pl-3">{item.output}</div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
-      {/* Terminal Input Bar */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          handleCommand(input)
-        }}
-        className="flex items-center gap-2 px-4 py-3 bg-muted/40 border-t border-primary/30"
-      >
-        <span className="text-primary font-bold text-xs select-none">root@passguard:~#</span>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type 'help', 'eval mypassword', 'diceware', or 'antipatterns'..."
-          className="flex-1 bg-transparent text-xs font-mono text-foreground outline-none placeholder:text-muted-foreground/60"
-          autoFocus
-        />
+      {/* Command Suggestions Chips */}
+      <div className="px-4 py-2 bg-muted/30 border-t border-border flex items-center gap-1.5 overflow-x-auto custom-scrollbar">
+        <span className="text-[10px] uppercase font-semibold text-muted-foreground shrink-0 font-mono">
+          Quick:
+        </span>
+        {COMMAND_SUGGESTIONS.map(cmd => (
+          <button
+            key={cmd}
+            onClick={() => handleCommand(cmd)}
+            className="px-2.5 py-1 rounded-full border border-border bg-background hover:bg-muted text-xs font-mono text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
+            {cmd}
+          </button>
+        ))}
+      </div>
+
+      {/* Input Prompt Form */}
+      <form onSubmit={handleSubmit} className="flex items-center gap-2 p-3 bg-card border-t border-border">
+        <div className="flex items-center gap-2 flex-1 font-mono text-xs px-3 py-2 rounded-xl bg-background border border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+          <span className="text-primary font-bold select-none">&gt;</span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type 'help', 'eval <password>', 'diceware', 'stuffing'..."
+            className="flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground/50 text-xs font-mono"
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </div>
+
         <button
           type="submit"
-          className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 transition-colors"
+          className="p-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-colors shrink-0"
+          aria-label="Send command"
         >
-          <Send className="size-3.5" />
+          <Send className="size-4" />
         </button>
       </form>
     </div>

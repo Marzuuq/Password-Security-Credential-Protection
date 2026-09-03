@@ -21,29 +21,23 @@ import {
   Cpu,
   ShieldAlert,
   Zap,
-  Lock,
-  Layers,
   Sparkles,
-  Info,
   Copy,
   Check,
   RefreshCw,
   RotateCw,
   Trash2,
-  Sliders,
-  HelpCircle,
   GraduationCap,
   ArrowRight,
   Flame,
-  Hash,
   AlertTriangle,
-  ServerOff,
   Globe,
   Key,
-  Play,
   Code,
   Sun,
-  Moon
+  Moon,
+  ChevronDown,
+  X
 } from 'lucide-react'
 import {
   analyzePassword,
@@ -52,7 +46,6 @@ import {
 } from '@/lib/password-security'
 import {
   analyzePasswordWithZyla,
-  ZYLA_API_ENDPOINT,
   ZylaAnalysisResult,
   getStoredZylaApiKey,
   saveStoredZylaApiKey
@@ -68,56 +61,56 @@ type ThemeOption = 'dark' | 'light'
 type GeneratorMode = 'csprng' | 'diceware'
 
 const rules = [
-  'Minimum 12 characters length (16+ recommended)',
-  'Uppercase + lowercase casing mix',
-  'At least one numeric digit (0-9)',
-  'Special symbol required (!@#$%^&*)',
-  'Block breached dictionary words (RockYou / HIBP)',
-  'Shannon Entropy threshold >= 60 bits'
+  { label: 'Minimum 12 characters length (16+ recommended)', status: 'Enforced' },
+  { label: 'Mixed uppercase & lowercase letter casing', status: 'Enforced' },
+  { label: 'At least one numeric digit (0-9)', status: 'Enforced' },
+  { label: 'Special symbol required (!@#$%^&*)', status: 'Enforced' },
+  { label: 'Screen against known breach dictionaries (RockYou / HIBP)', status: 'Active' },
+  { label: 'Shannon Entropy threshold >= 60 bits', status: 'Active' }
 ]
 
 const metrics = [
-  ['Passwords Evaluated', '18,420', '+14.6% this month'],
-  ['Credential Replays Blocked', '4,892', '+22.4% this month'],
-  ['Avg Entropy Score', '76.8 bits', 'Optimal cyber defense'],
-  ['Zero-Storage Guarantee', '100% Client RAM', 'Zero network leaks']
+  { label: 'Evaluations Run', value: '18,420', subtext: '+14.6% this month', icon: Activity },
+  { label: 'Credential Replays Mitigated', value: '4,892', subtext: '+22.4% this month', icon: ShieldCheck },
+  { label: 'Avg Entropy Score', value: '76.8 bits', subtext: 'Optimal cryptographic defense', icon: Cpu },
+  { label: 'Zero-Storage Guarantee', value: '100% RAM', subtext: 'Zero network transmissions', icon: Zap }
 ]
 
 const tabBanners: Record<Tab, { category: string; title: string; subtitle: string; description: string }> = {
   overview: {
-    category: 'GLOBAL THREAT MATRIX & SYSTEM STATUS',
-    title: 'CYBER THREAT & ANALYSIS MATRIX',
-    subtitle: 'REPLAY DEFENSE · ACTIVE ATTACK SCENARIOS · AUDIT REPORT',
-    description: 'Monitor global security metrics, visualize credentials replay cascades in the simulator, examine weak pattern catalogs, and review baseline system integrity parameters.'
+    category: 'Security Telemetry & Threat Analysis',
+    title: 'Cyber Threat & Telemetry Matrix',
+    subtitle: 'Credential Replay Defense & Audit Telemetry',
+    description: 'Monitor baseline metrics, simulate credential stuffing replay cascades, review weak pattern vulnerabilities, and verify digital identity compliance.'
   },
   checker: {
-    category: 'CRYPTOGRAPHIC STRENGTH & EDUCATION HUB',
-    title: 'ZERO-KNOWLEDGE PASSWORD EVALUATOR',
-    subtitle: 'SHANNON ENTROPY · GPU CRACK TIME · CREDENTIAL STUFFING DEFENSE',
-    description: 'Measure true mathematical entropy ($E = L × \\log_2 N$), detect leetspeak & breach patterns, learn why password reuse triggers credential stuffing cascades, and generate Diceware passphrases—without storing or sending any passwords.'
+    category: 'Cryptographic Strength & Security Hub',
+    title: 'Zero-Knowledge Password Evaluator',
+    subtitle: 'Shannon Entropy &middot; GPU Crack Resistance &middot; Breach Detection',
+    description: 'Measure mathematical entropy (E = L \u00D7 log\u2082 N), detect leetspeak & dictionary patterns, and generate NIST-recommended Diceware passphrases in complete browser privacy.'
   },
   academy: {
-    category: 'CYBERSECURITY ACADEMY & HYGIENE',
-    title: 'DEFENSIVE TRAINING & EXERTION HUB',
-    subtitle: 'INTERACTIVE LEARNING LABS · PATTERN ENCYCLOPEDIA · NIST STANDARDS',
-    description: 'Master credential stuffing defense, understand the security differential between passphrases and passwords, study common pattern classifications, and quiz your cryptographic hygiene.'
+    category: 'Cybersecurity Education & Training',
+    title: 'Defensive Security Academy',
+    subtitle: 'Interactive Labs &middot; Pattern Encyclopedia &middot; NIST SP 800-63B',
+    description: 'Master credential stuffing defense, explore the exponential mathematics of multi-word Diceware passphrases, and test your password hygiene with interactive quizzes.'
   },
   terminal: {
-    category: 'LOW-LEVEL SECURE COMMAND MATRIX',
-    title: 'HACKER SHELL & TELEMETRY CONSOLE',
-    subtitle: 'SIMULATED BASH ACCESS · SYSTEM INVENTORY · API VERIFICATION',
-    description: 'Execute in-memory shell macros, inspect telemetry logs, query database configurations, and test network sandboxes directly via a high-fidelity interactive developer console.'
+    category: 'Developer Shell & Command Matrix',
+    title: 'Interactive Security Shell',
+    subtitle: 'Command Console &middot; Cryptographic Tools &middot; Live API Inspector',
+    description: 'Execute in-memory shell commands, inspect hash digests, and test password parameters via a fast, interactive developer terminal.'
   },
   policies: {
-    category: 'IDENTITY COMPLIANCE & POLICY ENGINE',
-    title: 'ENTERPRISE BASELINE SECURITY STANDARDS',
-    subtitle: 'NIST SP 800-63B ALIGNED · COMPLIANCE RULES · COMPLEXITY ENFORCEMENT',
-    description: 'Configure and review system-wide credential policies, verify entropy limits, evaluate character distribution guidelines, and enforce zero-leakage security postures.'
+    category: 'Identity Compliance & Standards',
+    title: 'Enterprise Baseline Security Policies',
+    subtitle: 'NIST SP 800-63B Aligned &middot; Modern Identity Governance',
+    description: 'Review system-wide credential policies, verify entropy thresholds, examine character distribution guidelines, and enforce zero-leakage security postures.'
   }
 }
 
 export default function Page() {
-  const [tab, setTab] = useState<Tab>('overview')
+  const [tab, setTab] = useState<Tab>('checker')
   const [password, setPassword] = useState('')
   const [visible, setVisible] = useState(false)
   const [mobile, setMobile] = useState(false)
@@ -127,7 +120,7 @@ export default function Page() {
   const [memoryWipedFeedback, setMemoryWipedFeedback] = useState(false)
 
   // Theme & Audio Controls
-  const [theme, setTheme] = useState<ThemeOption>('light')
+  const [theme, setTheme] = useState<ThemeOption>('dark')
   const [matrixEnabled, setMatrixEnabled] = useState(true)
   const [isAudioMuted, setIsAudioMuted] = useState(false)
 
@@ -212,6 +205,7 @@ export default function Page() {
     setZylaApiKey(key)
     saveStoredZylaApiKey(key)
     hackerAudio.playSuccess()
+    setShowZylaConfig(false)
   }
 
   const handleCopyZylaJson = () => {
@@ -234,19 +228,19 @@ export default function Page() {
   }
 
   const nav = [
+    ['checker', 'Password Evaluator', KeyRound],
     ['overview', 'Threat Matrix', LayoutDashboard],
-    ['checker', 'Password Checker', KeyRound],
-    ['academy', 'Cyber Security Academy', GraduationCap],
-    ['terminal', 'Hacker Shell Console', TerminalIcon],
-    ['policies', 'Policy & Compliance', Network]
+    ['academy', 'Security Academy', GraduationCap],
+    ['terminal', 'Security Shell', TerminalIcon],
+    ['policies', 'Policy & Standards', Network]
   ] as const
 
   return (
     <main className="min-h-screen bg-background text-foreground" data-theme={theme}>
-      {/* Matrix Digital Rain Background */}
-      <MatrixBackground theme={theme} active={matrixEnabled} opacity={theme === 'light' ? 0.18 : 0.25} />
+      {/* Matrix Ambient Digital Rain Background */}
+      <MatrixBackground theme={theme} active={matrixEnabled} />
 
-      {/* Privacy & Zero-Knowledge Verification Modal */}
+      {/* Zero-Storage Privacy Proof Modal */}
       <ZeroStorageModal
         isOpen={isPrivacyModalOpen}
         onClose={() => setIsPrivacyModalOpen(false)}
@@ -258,106 +252,127 @@ export default function Page() {
         <aside
           className={`${
             mobile ? 'flex' : 'hidden'
-          } fixed inset-y-0 left-0 z-50 w-72 flex-col border-r border-primary/30 bg-card/90 backdrop-blur-xl p-5 lg:static lg:flex shadow-[0_0_30px_rgba(0,0,0,0.8)]`}
+          } fixed inset-y-0 left-0 z-50 w-72 flex-col border-r border-border bg-card/95 backdrop-blur-xl p-5 lg:static lg:flex shadow-xl lg:shadow-none`}
         >
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground border-glow">
-              <LockKeyhole className="size-6" />
+          {/* Brand Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <LockKeyhole className="size-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-base tracking-tight text-foreground">Passguard</p>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20">
+                    v3.8
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Security & Identity Console</p>
+              </div>
             </div>
-            <div>
-              <p className="font-display text-base font-extrabold tracking-wider text-primary glow-text">PASSGUARD</p>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-mono">Cyber Console v3.8</p>
-            </div>
+
+            <button
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden"
+              onClick={() => setMobile(false)}
+              aria-label="Close menu"
+            >
+              <X className="size-5" />
+            </button>
           </div>
 
-          <button
-            className="mt-4 self-end p-2 text-muted-foreground lg:hidden"
-            onClick={() => setMobile(false)}
-            aria-label="Close menu"
-          >
-            ×
-          </button>
-
-          {/* Navigation Links */}
-          <nav className="mt-8 flex flex-col gap-2">
-            <p className="px-3 pb-2 text-[10px] uppercase tracking-[0.2em] font-mono text-primary/80">Cyber Modules</p>
+          {/* Navigation Items */}
+          <nav className="mt-8 flex flex-col gap-1.5">
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Modules
+            </p>
             {nav.map(([id, label, Icon]) => (
               <button
                 key={id}
                 onClick={() => handleTabChange(id)}
-                className={`flex items-center gap-3 rounded-lg px-3.5 py-3 text-left text-xs font-mono transition-all ${
+                className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-xs font-medium transition-all ${
                   tab === id
-                    ? 'bg-primary/20 text-primary border border-primary/40 font-bold shadow-[0_0_15px_rgba(0,255,102,0.15)]'
-                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <Icon className="size-4 text-primary shrink-0" />
+                <Icon className="size-4 shrink-0" />
                 <span>{label}</span>
                 {id === 'academy' && (
-                  <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary">
-                    NEW
+                  <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    tab === id ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
+                  }`}>
+                    Labs
                   </span>
                 )}
               </button>
             ))}
           </nav>
 
-          {/* Hacker Controls Box */}
-          <div className="mt-6 rounded-xl border border-primary/30 bg-muted/40 p-4 font-mono space-y-3">
-            <div className="flex items-center justify-between text-xs text-primary font-bold">
-              <span className="flex items-center gap-1.5"><Sparkles className="size-3.5" /> THEME</span>
-              <span className="text-[10px] uppercase text-muted-foreground font-mono">{theme} MODE</span>
+          {/* Theme & Canvas Preferences */}
+          <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-primary" /> Appearance
+              </span>
+              <span className="text-[11px] capitalize text-muted-foreground">{theme} Mode</span>
             </div>
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => { setTheme('dark'); hackerAudio.playKeypress() }}
-                className={`px-3 py-2 text-xs rounded-lg border flex items-center justify-center gap-1.5 transition-all ${
+                className={`px-3 py-2 text-xs rounded-xl border flex items-center justify-center gap-1.5 transition-all ${
                   theme === 'dark'
-                    ? 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,136,0.25)]'
-                    : 'border-border/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                    ? 'bg-card border-primary/50 text-foreground font-semibold shadow-sm'
+                    : 'border-border text-muted-foreground hover:bg-muted'
                 }`}
               >
                 <Moon className="size-3.5" /> Dark
               </button>
               <button
                 onClick={() => { setTheme('light'); hackerAudio.playKeypress() }}
-                className={`px-3 py-2 text-xs rounded-lg border flex items-center justify-center gap-1.5 transition-all ${
+                className={`px-3 py-2 text-xs rounded-xl border flex items-center justify-center gap-1.5 transition-all ${
                   theme === 'light'
-                    ? 'bg-primary/20 text-primary border-primary/60 font-bold shadow-[0_0_10px_rgba(0,255,136,0.25)]'
-                    : 'border-border/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                    ? 'bg-card border-primary/50 text-foreground font-semibold shadow-sm'
+                    : 'border-border text-muted-foreground hover:bg-muted'
                 }`}
               >
-                <Sun className="size-3.5" /> Light
+                <Sun className="size-3.5 text-amber-500" /> Light
               </button>
             </div>
 
-            <div className="pt-2 border-t border-border/40 space-y-2">
+            <div className="pt-2 border-t border-border/60">
               <button
                 onClick={() => setMatrixEnabled(!matrixEnabled)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] rounded border transition-all ${
-                  matrixEnabled ? 'border-primary/50 text-primary bg-primary/10 font-bold' : 'border-border text-muted-foreground'
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl border transition-all ${
+                  matrixEnabled
+                    ? 'border-primary/40 bg-primary/10 text-primary font-semibold'
+                    : 'border-border text-muted-foreground hover:bg-muted'
                 }`}
               >
-                <span className="flex items-center gap-1.5"><Binary className="size-3.5" /> Matrix Rain Canvas</span>
-                <span>{matrixEnabled ? 'ON' : 'OFF'}</span>
+                <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                  <Binary className="size-3.5" /> Ambient Matrix Rain
+                </span>
+                <span className="text-[10px] font-bold">{matrixEnabled ? 'ON' : 'OFF'}</span>
               </button>
             </div>
           </div>
 
-          {/* Privacy & Zero-Knowledge Verification Box */}
-          <div className="mt-auto rounded-xl border border-primary/30 bg-background/90 p-4 font-mono space-y-2">
+          {/* Privacy Proof Card */}
+          <div className="mt-auto rounded-2xl border border-border bg-muted/20 p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                <ShieldCheck className="size-4" /> ZERO-STORAGE
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <ShieldCheck className="size-4 text-emerald-500" /> Zero-Storage
               </span>
-              <span className="text-[9px] text-emerald-400 font-bold">100% RAM</span>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                100% RAM
+              </span>
             </div>
-            <p className="text-[11px] leading-4 text-muted-foreground">
-              Evaluated strictly in browser RAM. Zero network transmissions.
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Evaluated strictly in browser RAM. Zero outbound data leaks.
             </p>
             <button
               onClick={() => { setIsPrivacyModalOpen(true); hackerAudio.playKeypress() }}
-              className="w-full mt-2 text-[10px] font-bold text-primary hover:underline flex items-center justify-center gap-1 pt-1 border-t border-border/30"
+              className="w-full mt-1 text-xs font-semibold text-primary hover:underline flex items-center justify-center gap-1 pt-1.5 border-t border-border/50"
             >
               Verify Privacy Proof <ArrowRight className="size-3" />
             </button>
@@ -367,196 +382,192 @@ export default function Page() {
         {/* Main Content Area */}
         <section className="min-w-0 flex-1 flex flex-col">
           {/* Header Bar */}
-          <header className="flex h-20 items-center justify-between border-b border-primary/30 px-5 md:px-8 bg-card/60 backdrop-blur-md">
+          <header className="flex h-16 items-center justify-between border-b border-border px-5 md:px-8 bg-card/70 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <button
-                className="p-2 text-muted-foreground lg:hidden"
+                className="p-2 -ml-2 text-muted-foreground hover:text-foreground lg:hidden"
                 onClick={() => setMobile(true)}
                 aria-label="Open menu"
               >
                 <Menu className="size-5" />
               </button>
               <div>
-                <p className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
-                  <Radio className="size-3 text-primary animate-pulse" /> CYBER CONSOLE / SECURE EVALUATOR
-                </p>
-                <h1 className="text-lg md:text-xl font-extrabold font-display text-foreground flex items-center gap-2 tracking-wide">
-                  PASSWORD SECURITY & THREAT EVALUATOR
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] border border-primary/40 bg-primary/10 text-primary font-mono font-normal tracking-normal uppercase">
-                    ZERO-STORAGE VERIFIED
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+                    Passguard Security Console
                   </span>
-                </h1>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3 font-mono">
-              {/* Light/Dark Toggle in Header */}
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Theme Toggle */}
               <button
                 onClick={() => {
                   setTheme(theme === 'dark' ? 'light' : 'dark')
                   hackerAudio.playKeypress()
                 }}
-                className="px-2.5 py-1.5 rounded-lg border border-primary/30 bg-muted/40 hover:bg-muted text-primary transition-colors flex items-center gap-1.5 text-xs font-bold"
+                className="p-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground transition-colors"
                 title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
               >
-                {theme === 'dark' ? (
-                  <>
-                    <Sun className="size-3.5 text-amber-400" />
-                    <span className="hidden sm:inline text-[11px]">LIGHT</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="size-3.5 text-primary" />
-                    <span className="hidden sm:inline text-[11px]">DARK</span>
-                  </>
-                )}
+                {theme === 'dark' ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-primary" />}
               </button>
 
+              {/* Sound Synth Toggle */}
               <button
                 onClick={toggleSound}
-                className="p-2 rounded-lg border border-primary/30 bg-muted/40 hover:bg-muted text-primary transition-colors"
-                title={isAudioMuted ? 'Unmute audio synth' : 'Mute audio synth'}
+                className="p-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground transition-colors"
+                title={isAudioMuted ? 'Unmute audio effects' : 'Mute audio effects'}
               >
                 {isAudioMuted ? <VolumeX className="size-4 text-muted-foreground" /> : <Volume2 className="size-4 text-primary" />}
               </button>
 
+              {/* Zero-Storage Badge Trigger */}
               <button
                 onClick={() => { setIsPrivacyModalOpen(true); hackerAudio.playKeypress() }}
-                className="hidden md:flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs text-primary glow-text hover:bg-primary/20 transition-all"
+                className="hidden md:flex items-center gap-2 rounded-xl border border-border bg-card hover:bg-muted px-3 py-1.5 text-xs text-foreground font-medium transition-colors"
               >
-                <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>IN-MEMORY SANDBOX</span>
+                <span className="size-2 rounded-full bg-emerald-500" />
+                <span>Client RAM Sandbox</span>
               </button>
             </div>
           </header>
 
-          {/* Main Container */}
-          <div className="mx-auto max-w-[1500px] w-full p-5 md:p-8 flex-1">
-            {/* Banner Header */}
-            <div className="mb-8 font-mono">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary font-display">
-                <Zap className="size-4" /> {tabBanners[tab].category}
+          {/* Main Scrollable Canvas */}
+          <div className="mx-auto max-w-6xl w-full p-5 md:p-8 flex-1">
+            {/* Banner Section */}
+            <div className="mb-8">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                <Zap className="size-3.5" /> {tabBanners[tab].category}
               </div>
-              <h2 className="mt-2 text-balance text-2xl md:text-4xl font-extrabold font-display tracking-tight text-foreground">
-                {tabBanners[tab].title}<br />
-                <span className="text-muted-foreground text-xl md:text-3xl font-semibold font-mono block mt-1 tracking-normal">
-                  {tabBanners[tab].subtitle}
-                </span>
-              </h2>
-              <p className="mt-3 max-w-3xl text-xs md:text-sm leading-6 text-muted-foreground font-sans">
+              <h1 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+                {tabBanners[tab].title}
+              </h1>
+              <p className="text-muted-foreground text-sm font-medium mt-1">
+                {tabBanners[tab].subtitle}
+              </p>
+              <p className="mt-2 max-w-3xl text-xs md:text-sm leading-relaxed text-muted-foreground">
                 {tabBanners[tab].description}
               </p>
             </div>
 
-            {/* TAB 1: OVERVIEW */}
+            {/* TAB 1: OVERVIEW & THREAT MATRIX */}
             {tab === 'overview' && (
-              <div className="space-y-6 font-mono">
-                {/* Metric Cards */}
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {metrics.map(([label, value, subtext]) => (
+              <div className="space-y-6">
+                {/* Metric Cards Grid */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {metrics.map(({ label, value, subtext, icon: Icon }) => (
                     <div
                       key={label}
-                      className="rounded-xl border border-primary/30 bg-card/80 p-5 backdrop-blur-md shadow-[0_0_15px_rgba(0,0,0,0.4)] hover:border-primary/60 transition-colors"
+                      className="rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-primary/40 transition-colors"
                     >
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{label}</span>
-                        <Activity className="size-4 text-primary" />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-medium">{label}</span>
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                          <Icon className="size-4" />
+                        </div>
                       </div>
-                      <p className="mt-4 font-mono text-2xl md:text-3xl font-extrabold text-foreground glow-text">{value}</p>
-                      <p className="mt-2 text-[11px] text-primary">{subtext}</p>
+                      <p className="mt-3 text-2xl font-bold text-foreground font-mono">{value}</p>
+                      <p className="mt-1 text-xs text-primary font-medium">{subtext}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Main Overview Grid */}
-                <div className="grid gap-6 xl:grid-cols-2">
-                  {/* Security Posture Gauge */}
-                  <section className="rounded-xl border border-primary/30 bg-card/80 p-6 backdrop-blur-md space-y-6">
+                {/* Defense Posture & Threats Grid */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Defense Posture Gauge */}
+                  <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                          <Cpu className="size-4 text-primary" /> GLOBAL CYBER DEFENSE POSTURE
+                          <Cpu className="size-4 text-primary" /> Overall Defense Posture
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Composite telemetry aligned with NIST SP 800-63B guidelines</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Composite telemetry aligned with NIST SP 800-63B</p>
                       </div>
-                      <span className="px-2.5 py-1 text-xs rounded border border-primary/40 bg-primary/10 text-primary font-bold">
-                        GRADE A+
+                      <span className="px-2.5 py-1 text-xs rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30">
+                        Grade A+
                       </span>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-8 justify-center pt-2">
-                      <div className="relative flex size-40 flex-col items-center justify-center rounded-full border-[12px] border-primary/80 shadow-[0_0_25px_rgba(0,255,102,0.2)]">
-                        <span className="font-mono text-4xl font-extrabold text-foreground glow-text">96</span>
-                        <span className="text-[10px] uppercase text-muted-foreground tracking-widest">OUT OF 100</span>
+                    <div className="flex flex-col sm:flex-row items-center gap-8 justify-center py-4">
+                      <div className="relative flex size-36 flex-col items-center justify-center rounded-full border-[10px] border-primary/20 border-t-primary shadow-sm">
+                        <span className="text-3xl font-bold text-foreground font-mono">96</span>
+                        <span className="text-[10px] uppercase text-muted-foreground tracking-wider font-semibold">Out of 100</span>
                       </div>
 
                       <div className="flex flex-col gap-3 text-xs">
-                        <div className="flex items-center gap-3">
-                          <span className="size-3 rounded-full bg-primary" />
-                          <span className="text-foreground font-bold">82% High Entropy</span> (Entropy &gt; 65 bits)
+                        <div className="flex items-center gap-2.5">
+                          <span className="size-2.5 rounded-full bg-primary shrink-0" />
+                          <span className="text-foreground font-semibold">82% High Entropy</span>
+                          <span className="text-muted-foreground">(Entropy &gt; 65 bits)</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="size-3 rounded-full bg-amber-500" />
-                          <span className="text-foreground font-bold">14% Moderate</span> (Needs length / symbols)
+                        <div className="flex items-center gap-2.5">
+                          <span className="size-2.5 rounded-full bg-amber-500 shrink-0" />
+                          <span className="text-foreground font-semibold">14% Moderate</span>
+                          <span className="text-muted-foreground">(Needs length / symbols)</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="size-3 rounded-full bg-red-500" />
-                          <span className="text-foreground font-bold">4% Breached / Reused</span> (Known leak dump)
+                        <div className="flex items-center gap-2.5">
+                          <span className="size-2.5 rounded-full bg-rose-500 shrink-0" />
+                          <span className="text-foreground font-semibold">4% Breached / Reused</span>
+                          <span className="text-muted-foreground">(Known leak dump)</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-border/40 flex justify-between items-center">
+                    <div className="pt-3 border-t border-border flex justify-between items-center text-xs">
                       <button
                         onClick={() => handleTabChange('checker')}
-                        className="px-4 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-xs font-bold flex items-center gap-1.5 transition-all"
+                        className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold flex items-center gap-1.5 transition-colors"
                       >
-                        Launch Password Evaluator <ArrowRight className="size-3.5" />
+                        Launch Evaluator <ArrowRight className="size-3.5" />
                       </button>
 
                       <button
                         onClick={() => handleTabChange('academy')}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                        className="text-muted-foreground hover:text-primary transition-colors font-medium"
                       >
-                        Explore Security Academy →
+                        Defensive Academy &rarr;
                       </button>
                     </div>
                   </section>
 
-                  {/* Education & Threat Highlights */}
-                  <section className="rounded-xl border border-primary/30 bg-card/80 p-6 backdrop-blur-md space-y-4">
-                    <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                      <ShieldAlert className="size-4 text-destructive" /> TOP CRITICAL THREAT VECTORS
-                    </h3>
-                    <p className="text-xs text-muted-foreground">Key vulnerabilities identified in credential datasets</p>
+                  {/* Threat Vectors */}
+                  <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
+                    <div>
+                      <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                        <ShieldAlert className="size-4 text-destructive" /> Top Vulnerability Vectors
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Primary failure modes identified in compromised accounts</p>
+                    </div>
 
                     <div className="space-y-3 pt-1 text-xs">
-                      <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 flex items-start gap-3">
+                      <div className="p-3.5 rounded-xl border border-border bg-muted/20 flex items-start gap-3">
                         <Flame className="size-5 text-destructive shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-bold text-foreground">Password Reuse & Credential Stuffing</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            Over 80% of corporate breaches originate from stolen credentials re-used from minor third-party breaches.
+                          <p className="font-semibold text-foreground">Password Reuse & Credential Stuffing</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            Over 80% of data breaches stem from stolen passwords re-used across unrelated services.
                           </p>
                         </div>
                       </div>
 
-                      <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">
-                        <AlertTriangle className="size-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="p-3.5 rounded-xl border border-border bg-muted/20 flex items-start gap-3">
+                        <AlertTriangle className="size-5 text-amber-500 shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-bold text-foreground">Predictable Leetspeak & Year Suffixes</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            Adversaries use Hashcat rule engines to reverse &quot;P@ssw0rd2024!&quot; in under 1 millisecond.
+                          <p className="font-semibold text-foreground">Predictable Leetspeak & Year Suffixes</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            Adversaries use rule engines (Hashcat) to reverse strings like &quot;P@ssw0rd2024!&quot; in milliseconds.
                           </p>
                         </div>
                       </div>
 
-                      <div className="p-3 rounded-lg border border-primary/40 bg-primary/10 flex items-start gap-3">
+                      <div className="p-3.5 rounded-xl border border-border bg-muted/20 flex items-start gap-3">
                         <KeyRound className="size-5 text-primary shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-bold text-foreground">Diceware Passphrase Solution</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            4 random words provide 77+ bits of true information entropy with effortless human recall.
+                          <p className="font-semibold text-foreground">Diceware Passphrase Defense</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            4 random words provide 77+ bits of true information entropy with effortless human memorability.
                           </p>
                         </div>
                       </div>
@@ -566,20 +577,20 @@ export default function Page() {
               </div>
             )}
 
-            {/* TAB 2: PASSWORD CHECKER (SIMPLIFIED & CLEAN) */}
+            {/* TAB 2: PASSWORD CHECKER (CLEAN, MODERN, ELEGANT HERO) */}
             {tab === 'checker' && (
-              <section className="max-w-4xl mx-auto space-y-6 font-mono">
-                {/* Main Evaluation Card */}
-                <div className="rounded-2xl border border-primary/40 bg-card/85 p-6 md:p-8 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6">
+              <section className="max-w-3xl mx-auto space-y-6">
+                {/* Main Evaluator Card */}
+                <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-sm space-y-6">
                   {/* Card Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/40 shadow-[0_0_10px_rgba(0,255,102,0.2)]">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
                         <KeyRound className="size-5" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg text-foreground tracking-tight">PASSWORD STRENGTH CHECKER</h3>
-                        <p className="text-xs text-muted-foreground">100% Client-Side RAM Sandbox · Zero Network Storage</p>
+                        <h2 className="font-bold text-lg text-foreground">Password Strength Evaluator</h2>
+                        <p className="text-xs text-muted-foreground">100% Client-Side RAM Sandbox &middot; Zero Network Storage</p>
                       </div>
                     </div>
 
@@ -589,21 +600,21 @@ export default function Page() {
                           setShowZylaConfig(!showZylaConfig)
                           hackerAudio.playKeypress()
                         }}
-                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                           zylaApiKey
-                            ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                            : 'border-border hover:border-primary/50 text-muted-foreground hover:text-primary'
+                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
                         }`}
                         title="Configure Zyla Labs API Key"
                       >
                         <Key className="size-3" />
-                        <span>{zylaApiKey ? 'KEY SET' : 'API KEY'}</span>
+                        <span>{zylaApiKey ? 'API Key Set' : 'Configure API Key'}</span>
                       </button>
 
                       {password && (
                         <button
                           onClick={handleSanitizeMemory}
-                          className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/50 hover:border-destructive/30 flex items-center gap-1.5 transition-colors"
+                          className="px-3 py-1.5 rounded-xl text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border transition-colors flex items-center gap-1.5"
                         >
                           <Trash2 className="size-3.5" /> Clear
                         </button>
@@ -611,43 +622,43 @@ export default function Page() {
                     </div>
                   </div>
 
-                  {/* Zyla API Key Inline Drawer */}
+                  {/* Zyla API Drawer */}
                   {showZylaConfig && (
-                    <div className="p-3.5 rounded-xl border border-primary/40 bg-muted/40 space-y-2 text-xs animate-in fade-in slide-in-from-top-1 duration-150">
-                      <div className="flex justify-between items-center text-primary font-bold">
-                        <span className="flex items-center gap-1.5">
-                          <Key className="size-3.5" /> ZYLA LABS API KEY (OPTIONAL)
+                    <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-2.5 text-xs animate-in fade-in duration-150">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <Key className="size-3.5 text-primary" /> Optional Zyla Labs API Key
                         </span>
-                        <span className="text-[10px] text-muted-foreground">Stored locally</span>
+                        <span className="text-[11px] text-muted-foreground">Stored only in local storage</span>
                       </div>
                       <div className="flex gap-2">
                         <input
                           type="password"
                           value={zylaApiKey}
                           onChange={(e) => setZylaApiKey(e.target.value)}
-                          placeholder="Paste Zyla API key (or set ZYLA_API_KEY in .env.local)"
-                          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary text-foreground font-mono"
+                          placeholder="Paste your Zyla API key..."
+                          className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground font-mono"
                         />
                         <button
                           onClick={() => handleSaveZylaKey(zylaApiKey)}
-                          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
+                          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
                         >
-                          SAVE
+                          Save
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Password Input Box */}
+                  {/* Password Input Field */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <label htmlFor="password-input" className="font-bold text-primary tracking-wider">
-                        ENTER PASSWORD TO EVALUATE:
+                      <label htmlFor="password-input" className="font-semibold text-foreground">
+                        Enter password to evaluate:
                       </label>
-                      <span className="text-muted-foreground font-mono">{analysis.length} chars</span>
+                      <span className="text-muted-foreground font-mono">{analysis.length} characters</span>
                     </div>
 
-                    <div className="flex rounded-xl border-2 border-primary/40 bg-background/95 focus-within:border-primary transition-colors shadow-inner">
+                    <div className="flex items-center rounded-2xl border-2 border-border bg-background/80 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all p-1">
                       <input
                         id="password-input"
                         type={visible ? 'text' : 'password'}
@@ -659,7 +670,7 @@ export default function Page() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleQueryZyla()
                         }}
-                        className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-base outline-none text-foreground placeholder:text-muted-foreground/40"
+                        className="min-w-0 flex-1 bg-transparent px-4 py-3 font-mono text-base outline-none text-foreground placeholder:text-muted-foreground/40"
                         placeholder="Type or paste any password..."
                         autoComplete="off"
                         spellCheck={false}
@@ -667,7 +678,7 @@ export default function Page() {
                       />
 
                       <button
-                        className="px-3 text-muted-foreground hover:text-primary transition-colors"
+                        className="p-2.5 text-muted-foreground hover:text-foreground transition-colors"
                         onClick={() => setVisible(!visible)}
                         aria-label={visible ? 'Hide password' : 'Show password'}
                       >
@@ -677,8 +688,8 @@ export default function Page() {
                       <button
                         onClick={() => handleQueryZyla()}
                         disabled={!password || isZylaLoading}
-                        className="px-4 my-1.5 mr-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-40"
-                        title="Query Zyla Labs Password Strength API"
+                        className="px-4 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none mr-1"
+                        title="Query Zyla Labs API"
                       >
                         {isZylaLoading ? (
                           <RotateCw className="size-3.5 animate-spin text-primary" />
@@ -690,126 +701,125 @@ export default function Page() {
                     </div>
                   </div>
 
-                  {/* Primary Score & Strength Bar */}
+                  {/* Dynamic Score & Strength Bar */}
                   <div className="space-y-3 pt-1">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl font-extrabold" style={{ color: analysis.toneColor }}>
+                        <span className="text-2xl font-bold" style={{ color: analysis.toneColor }}>
                           {analysis.rating}
                         </span>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full border border-border bg-muted/60 text-foreground font-bold">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full border border-border bg-muted/60 text-foreground font-semibold font-mono">
                           Score: {analysis.strengthScore} / 100
                         </span>
                       </div>
 
                       <div className="text-xs text-muted-foreground flex items-center gap-2">
-                        <span>Entropy: <strong className="text-primary">{analysis.entropyBits} bits</strong></span>
-                        <span>·</span>
-                        <span>Crack Time: <strong className="text-emerald-400">{analysis.crackTimes.offlineGpu}</strong></span>
+                        <span>Entropy: <strong className="text-primary font-mono">{analysis.entropyBits} bits</strong></span>
+                        <span>&middot;</span>
+                        <span>Crack Time: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{analysis.crackTimes.offlineGpu}</strong></span>
                       </div>
                     </div>
 
-                    {/* Strength Progress Bar */}
-                    <div className="h-3 w-full rounded-full bg-muted/60 overflow-hidden flex p-0.5 border border-border/60">
+                    {/* Modern Strength Progress Bar */}
+                    <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden flex p-0.5">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className="h-full rounded-full transition-all duration-300 ease-out"
                         style={{
-                          width: `${Math.max(5, analysis.strengthScore)}%`,
-                          backgroundColor: analysis.toneColor,
-                          boxShadow: `0 0 12px ${analysis.toneColor}`
+                          width: `${Math.max(4, analysis.strengthScore)}%`,
+                          backgroundColor: analysis.toneColor
                         }}
                       />
                     </div>
                   </div>
 
-                  {/* Key Metric Highlights Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                    <div className="p-3 rounded-xl border border-border/60 bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground block">GPU CRACK TIME</span>
-                      <span className="font-bold text-foreground text-sm truncate block mt-0.5">{analysis.crackTimes.offlineGpu}</span>
+                  {/* 4-Column Stat Highlights */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">GPU Crack Time</span>
+                      <span className="font-bold text-foreground text-sm truncate block mt-0.5 font-mono">{analysis.crackTimes.offlineGpu}</span>
                     </div>
 
-                    <div className="p-3 rounded-xl border border-border/60 bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground block">SHANNON ENTROPY</span>
-                      <span className="font-bold text-primary text-sm truncate block mt-0.5">{analysis.entropyBits} bits</span>
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Shannon Entropy</span>
+                      <span className="font-bold text-primary text-sm truncate block mt-0.5 font-mono">{analysis.entropyBits} bits</span>
                     </div>
 
-                    <div className="p-3 rounded-xl border border-border/60 bg-muted/30">
-                      <span className="text-[10px] text-muted-foreground block">POOL SIZE</span>
-                      <span className="font-bold text-foreground text-sm truncate block mt-0.5">{analysis.poolSize} chars</span>
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Pool Size</span>
+                      <span className="font-bold text-foreground text-sm truncate block mt-0.5 font-mono">{analysis.poolSize} chars</span>
                     </div>
 
-                    <div className="p-3 rounded-xl border border-primary/40 bg-primary/10">
-                      <span className="text-[10px] text-primary block flex items-center gap-1 font-bold">
-                        <Globe className="size-2.5" /> ZYLA API RESULT
-                      </span>
-                      <span className="font-extrabold text-foreground text-sm truncate block mt-0.5 capitalize">
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Zyla Cloud API</span>
+                      <span className="font-bold text-foreground text-sm truncate block mt-0.5 capitalize">
                         {zylaResult?.data?.result ? `"${zylaResult.data.result}"` : isZylaLoading ? 'Checking...' : 'Ready'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Security Checks & Warnings Checklist */}
-                  <div className="grid sm:grid-cols-2 gap-3 pt-1 text-xs">
-                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
-                      analysis.checks.min12 ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-border/60 bg-muted/20 text-muted-foreground'
+                  {/* Requirements & Checks */}
+                  <div className="grid sm:grid-cols-2 gap-2.5 pt-1 text-xs">
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 transition-colors ${
+                      analysis.checks.min12 ? 'border-emerald-500/30 bg-emerald-500/5 text-foreground' : 'border-border bg-muted/10 text-muted-foreground'
                     }`}>
-                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.min12 ? 'text-emerald-400' : 'text-muted-foreground/40'}`} />
+                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.min12 ? 'text-emerald-500' : 'text-muted-foreground/40'}`} />
                       <span>At least 12 characters (16+ recommended)</span>
                     </div>
 
-                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
-                      analysis.checks.casing ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-border/60 bg-muted/20 text-muted-foreground'
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 transition-colors ${
+                      analysis.checks.casing ? 'border-emerald-500/30 bg-emerald-500/5 text-foreground' : 'border-border bg-muted/10 text-muted-foreground'
                     }`}>
-                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.casing ? 'text-emerald-400' : 'text-muted-foreground/40'}`} />
-                      <span>Mixed upper & lowercase letters</span>
+                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.casing ? 'text-emerald-500' : 'text-muted-foreground/40'}`} />
+                      <span>Mixed uppercase & lowercase letters</span>
                     </div>
 
-                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
-                      analysis.checks.hasNumber && analysis.checks.hasSymbol ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-border/60 bg-muted/20 text-muted-foreground'
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 transition-colors ${
+                      analysis.checks.hasNumber && analysis.checks.hasSymbol ? 'border-emerald-500/30 bg-emerald-500/5 text-foreground' : 'border-border bg-muted/10 text-muted-foreground'
                     }`}>
-                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.hasNumber && analysis.checks.hasSymbol ? 'text-emerald-400' : 'text-muted-foreground/40'}`} />
-                      <span>Includes numbers & symbols</span>
+                      <CheckCircle2 className={`size-4 shrink-0 ${analysis.checks.hasNumber && analysis.checks.hasSymbol ? 'text-emerald-500' : 'text-muted-foreground/40'}`} />
+                      <span>Contains numbers and symbols</span>
                     </div>
 
-                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
-                      analysis.checks.noCommonPattern ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground' : 'border-destructive/40 bg-destructive/10 text-destructive'
+                    <div className={`p-3 rounded-xl border flex items-center gap-2.5 transition-colors ${
+                      analysis.checks.noCommonPattern ? 'border-emerald-500/30 bg-emerald-500/5 text-foreground' : 'border-destructive/30 bg-destructive/5 text-destructive font-semibold'
                     }`}>
                       {analysis.checks.noCommonPattern ? (
-                        <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
+                        <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
                       ) : (
                         <AlertTriangle className="size-4 shrink-0 text-destructive" />
                       )}
-                      <span>{analysis.checks.noCommonPattern ? 'No dictionary / leak patterns' : 'Weak pattern detected'}</span>
+                      <span>{analysis.checks.noCommonPattern ? 'No dictionary / breach patterns' : 'Weak pattern detected'}</span>
                     </div>
                   </div>
 
-                  {/* Pattern Warning if detected */}
+                  {/* Anti-Pattern Alert */}
                   {analysis.patternsDetected.length > 0 && (
-                    <div className="p-3.5 rounded-xl border border-destructive/50 bg-destructive/10 text-xs space-y-1">
-                      <p className="font-bold text-destructive flex items-center gap-1.5">
+                    <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/5 text-xs space-y-1">
+                      <p className="font-semibold text-destructive flex items-center gap-1.5">
                         <AlertTriangle className="size-4" /> Detected Anti-Patterns:
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        {analysis.patternsDetected.map(p => p.name).join(' · ')}
+                        {analysis.patternsDetected.map(p => p.name).join(' &middot; ')}
                       </p>
                     </div>
                   )}
 
-                  {/* Quick Generator Box */}
-                  <div className="p-4 rounded-xl border border-primary/30 bg-muted/20 space-y-3 pt-3">
+                  {/* Built-in Generator */}
+                  <div className="p-4 rounded-2xl border border-border bg-muted/30 space-y-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-primary flex items-center gap-1.5">
-                        <Sparkles className="size-3.5" /> NEED A SECURE PASSWORD?
+                      <span className="font-semibold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-primary" /> Generate Secure Password
                       </span>
-                      <div className="flex gap-1 text-[11px]">
+                      <div className="flex gap-1">
                         <button
                           onClick={() => {
                             setGeneratorMode('diceware')
                             setGeneratedPassword(generateDicewarePassphrase(4, '-', false, false))
                             hackerAudio.playKeypress()
                           }}
-                          className={`px-2 py-0.5 rounded font-bold ${generatorMode === 'diceware' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                            generatorMode === 'diceware' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
+                          }`}
                         >
                           Passphrase
                         </button>
@@ -819,75 +829,77 @@ export default function Page() {
                             setGeneratedPassword(generateStrongPassword(16))
                             hackerAudio.playKeypress()
                           }}
-                          className={`px-2 py-0.5 rounded font-bold ${generatorMode === 'csprng' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                            generatorMode === 'csprng' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
+                          }`}
                         >
                           Random
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-background font-mono text-xs">
-                      <span className="flex-1 text-emerald-400 font-bold select-all tracking-wider truncate">
+                    <div className="flex items-center gap-2 p-3 rounded-xl border border-border bg-background font-mono text-xs">
+                      <span className="flex-1 text-emerald-600 dark:text-emerald-400 font-bold select-all tracking-wide truncate">
                         {generatedPassword}
                       </span>
                       <button
                         onClick={handleRegeneratePassword}
-                        className="p-1 rounded hover:text-primary text-muted-foreground transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Generate new"
                       >
                         <RefreshCw className="size-3.5" />
                       </button>
                       <button
                         onClick={handleCopyGenerated}
-                        className="px-2.5 py-1 rounded bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-[11px] font-bold flex items-center gap-1 transition-all"
+                        className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition-colors"
                       >
-                        {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                        {copied ? 'COPIED' : 'COPY'}
+                        {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+                        {copied ? 'Copied' : 'Copy'}
                       </button>
                       <button
                         onClick={() => handleApplyGenerated()}
-                        className="px-2.5 py-1 rounded bg-muted hover:bg-muted/80 text-foreground border border-border text-[11px] font-bold transition-all"
+                        className="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-semibold transition-colors"
                       >
-                        TEST IT
+                        Test
                       </button>
                     </div>
                   </div>
 
-                  {/* Collapsible Advanced Technical Details (Hashes & API Inspector) */}
-                  <div className="pt-2 border-t border-border/30">
+                  {/* Collapsible Cryptographic Details */}
+                  <div className="pt-2 border-t border-border/60">
                     <button
                       onClick={() => {
                         setShowApiTelemetry(!showApiTelemetry)
                         hackerAudio.playKeypress()
                       }}
-                      className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors font-bold"
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors font-medium"
                     >
-                      <Code className="size-3.5" />
-                      <span>{showApiTelemetry ? 'Hide Technical Details & Hashes' : 'Show Advanced Details (Hashes, API Inspector)'}</span>
+                      <Code className="size-3.5 text-primary" />
+                      <span>{showApiTelemetry ? 'Hide Hashes & Telemetry' : 'Show Advanced Cryptographic Details (Hashes, API Inspector)'}</span>
                     </button>
 
                     {showApiTelemetry && (
-                      <div className="mt-3 p-4 rounded-xl border border-border/60 bg-background/90 space-y-3 text-xs animate-in fade-in duration-150">
+                      <div className="mt-3 p-4 rounded-xl border border-border bg-muted/30 space-y-3 text-xs animate-in fade-in duration-150">
                         <div className="grid sm:grid-cols-2 gap-2 text-[11px]">
-                          <div className="p-2 rounded bg-muted/40 border border-border/40">
-                            <span className="text-muted-foreground block text-[10px]">SHA-256 Digest:</span>
-                            <span className="text-primary font-mono select-all break-all">{analysis.hashSimulations.sha256}</span>
+                          <div className="p-3 rounded-xl bg-background border border-border space-y-1">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">SHA-256 Digest</span>
+                            <span className="text-foreground font-mono select-all break-all text-xs">{analysis.hashSimulations.sha256}</span>
                           </div>
-                          <div className="p-2 rounded bg-muted/40 border border-border/40">
-                            <span className="text-muted-foreground block text-[10px]">SHA-1 (K-Anonymity):</span>
-                            <span className="text-cyan-400 font-mono select-all break-all">{analysis.hashSimulations.sha1}</span>
+                          <div className="p-3 rounded-xl bg-background border border-border space-y-1">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">SHA-1 (K-Anonymity Prefix)</span>
+                            <span className="text-sky-600 dark:text-sky-400 font-mono select-all break-all text-xs">{analysis.hashSimulations.sha1}</span>
                           </div>
                         </div>
 
                         {zylaResult && (
-                          <div className="p-2.5 rounded bg-muted/40 border border-border/40 space-y-1 text-[11px]">
-                            <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                              <span className="text-primary font-bold">Zyla API Response Payload:</span>
-                              <button onClick={handleCopyZylaJson} className="hover:text-primary flex items-center gap-1">
+                          <div className="p-3 rounded-xl bg-background border border-border space-y-2">
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="font-semibold text-foreground">Zyla API Response Payload:</span>
+                              <button onClick={handleCopyZylaJson} className="text-primary hover:underline flex items-center gap-1">
                                 {copiedJson ? 'Copied' : 'Copy JSON'}
                               </button>
                             </div>
-                            <pre className="text-emerald-400 font-mono overflow-x-auto text-[10px] max-h-24">
+                            <pre className="text-emerald-600 dark:text-emerald-400 font-mono overflow-x-auto text-[11px] p-2 rounded bg-muted/40 max-h-32">
                               {JSON.stringify(zylaResult.data || zylaResult, null, 2)}
                             </pre>
                           </div>
@@ -899,51 +911,53 @@ export default function Page() {
               </section>
             )}
 
-            {/* TAB 3: CYBER EDUCATION ACADEMY */}
+            {/* TAB 3: EDUCATION ACADEMY */}
             {tab === 'academy' && (
               <section>
                 <EducationAcademy onTestPassword={handleApplyGenerated} />
               </section>
             )}
 
-            {/* TAB 4: HACKER TERMINAL */}
+            {/* TAB 4: DEVELOPER SHELL TERMINAL */}
             {tab === 'terminal' && (
-              <section className="space-y-4">
+              <section className="max-w-4xl mx-auto">
                 <TerminalConsole onThemeChange={setTheme} currentTheme={theme} />
               </section>
             )}
 
-            {/* TAB 5: POLICY ENGINE */}
+            {/* TAB 5: POLICY & STANDARDS */}
             {tab === 'policies' && (
-              <section className="rounded-xl border border-primary/40 bg-card/80 p-6 backdrop-blur-md font-mono space-y-6">
-                <div className="flex items-center gap-3 border-b border-border/40 pb-4">
-                  <Gauge className="size-6 text-primary" />
+              <section className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-3.5 border-b border-border pb-5">
+                  <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+                    <Gauge className="size-6" />
+                  </div>
                   <div>
-                    <h3 className="font-bold text-base text-foreground">ENTERPRISE POLICY & COMPLIANCE ENGINE</h3>
-                    <p className="text-xs text-muted-foreground">Real-time enforcement rules aligned with NIST SP 800-63B standards.</p>
+                    <h2 className="font-bold text-lg text-foreground">Enterprise Policy & Compliance Engine</h2>
+                    <p className="text-xs text-muted-foreground">Digital identity security standards aligned with NIST SP 800-63B</p>
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 md:grid-cols-2">
                   {rules.map((rule) => (
-                    <div key={rule} className="flex items-center justify-between rounded-lg border border-primary/30 bg-muted/30 p-4">
+                    <div key={rule.label} className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-4">
                       <div className="flex items-center gap-3">
-                        <CheckCircle2 className="size-4 text-primary shrink-0" />
-                        <span className="text-xs font-bold text-foreground">{rule}</span>
+                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                        <span className="text-xs font-semibold text-foreground">{rule.label}</span>
                       </div>
-                      <span className="text-[10px] px-2 py-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold shrink-0">
-                        ENFORCED
+                      <span className="text-[10px] px-2.5 py-1 rounded-full bg-primary/10 text-primary font-semibold shrink-0">
+                        {rule.status}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="p-4 rounded-xl border border-primary/30 bg-primary/10 text-xs text-foreground space-y-2">
-                  <p className="font-bold text-primary flex items-center gap-2">
-                    <ShieldCheck className="size-4" /> MODERN DIGITAL IDENTITY COMPLIANCE:
+                <div className="p-4 rounded-2xl border border-primary/20 bg-primary/5 text-xs text-foreground space-y-1.5">
+                  <p className="font-semibold text-primary flex items-center gap-2">
+                    <ShieldCheck className="size-4" /> Modern Identity Governance:
                   </p>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Unlike legacy password policies that force frequent periodic resets (driving employees to make weak predictable tweaks like Spring2023! -&gt; Summer2023!), modern NIST guidance mandates minimum 15+ character lengths, breach database screening, and Passkey/MFA adoption.
+                    Legacy password policies that force frequent periodic resets inadvertently encourage employees to create weak predictable variations (e.g. Spring2023! &rarr; Summer2023!). Modern NIST SP 800-63B guidance mandates minimum 15+ character lengths, breach database screening, and Passkey / MFA adoption instead.
                   </p>
                 </div>
               </section>

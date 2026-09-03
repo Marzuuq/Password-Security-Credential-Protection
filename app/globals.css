@@ -23,90 +23,128 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-3: var(--chart-3);
-  --font-sans: var(--font-space-grotesk), sans-serif;
-  --font-mono: var(--font-share-tech-mono), monospace;
-  --font-display: var(--font-orbitron), sans-serif;
+  --color-surface-hover: var(--surface-hover);
+  --color-emerald-accent: var(--emerald-accent);
+  --font-sans: var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-share-tech-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: var(--font-orbitron), var(--font-space-grotesk), sans-serif;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
 }
 
-/* Default Theme: Modern Light Theme */
+/* Light Theme: Clean, Crisp, Professional Obsidian & Slate */
 :root, [data-theme="light"] {
   color-scheme: light;
-  --background: oklch(0.98 0.005 240);
-  --foreground: oklch(0.15 0.02 240);
+  --background: oklch(0.985 0.003 240);
+  --foreground: oklch(0.16 0.02 240);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 240);
+  --card-foreground: oklch(0.16 0.02 240);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 240);
-  --primary: oklch(0.55 0.18 160);
+  --popover-foreground: oklch(0.16 0.02 240);
+  --primary: oklch(0.52 0.16 165);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.93 0.01 240);
-  --secondary-foreground: oklch(0.15 0.02 240);
-  --muted: oklch(0.94 0.01 240);
-  --muted-foreground: oklch(0.42 0.02 240);
-  --accent: oklch(0.92 0.02 160);
-  --accent-foreground: oklch(0.15 0.02 240);
+  --secondary: oklch(0.95 0.01 240);
+  --secondary-foreground: oklch(0.2 0.02 240);
+  --muted: oklch(0.955 0.008 240);
+  --muted-foreground: oklch(0.48 0.02 240);
+  --accent: oklch(0.94 0.02 165);
+  --accent-foreground: oklch(0.2 0.04 165);
   --destructive: oklch(0.58 0.22 25);
-  --border: oklch(0.86 0.02 240);
-  --input: oklch(0.88 0.02 240);
-  --ring: oklch(0.55 0.18 160);
-  --chart-3: oklch(0.6 0.15 80);
+  --border: oklch(0.89 0.01 240);
+  --input: oklch(0.91 0.01 240);
+  --ring: oklch(0.52 0.16 165);
+  --surface-hover: oklch(0.96 0.008 240);
+  --emerald-accent: oklch(0.55 0.17 155);
 }
 
-/* Dark Theme */
+/* Dark Theme: Deep Obsidian, Frosted Glass & Emerald / Cyan Accents */
 [data-theme="dark"], [data-theme="emerald"], [data-theme="stealth"] {
   color-scheme: dark;
-  --background: oklch(0.09 0.02 155);
-  --foreground: oklch(0.95 0.02 155);
-  --card: oklch(0.125 0.025 155);
-  --card-foreground: oklch(0.95 0.02 155);
-  --popover: oklch(0.12 0.025 155);
-  --popover-foreground: oklch(0.95 0.02 155);
-  --primary: oklch(0.78 0.22 145);
-  --primary-foreground: oklch(0.08 0.02 155);
-  --secondary: oklch(0.17 0.03 155);
-  --secondary-foreground: oklch(0.92 0.02 155);
-  --muted: oklch(0.15 0.02 155);
-  --muted-foreground: oklch(0.65 0.03 155);
-  --accent: oklch(0.20 0.04 155);
-  --accent-foreground: oklch(0.96 0.02 155);
+  --background: oklch(0.11 0.015 240);
+  --foreground: oklch(0.96 0.01 240);
+  --card: oklch(0.14 0.018 240);
+  --card-foreground: oklch(0.96 0.01 240);
+  --popover: oklch(0.13 0.018 240);
+  --popover-foreground: oklch(0.96 0.01 240);
+  --primary: oklch(0.75 0.19 155);
+  --primary-foreground: oklch(0.1 0.02 155);
+  --secondary: oklch(0.18 0.02 240);
+  --secondary-foreground: oklch(0.92 0.01 240);
+  --muted: oklch(0.17 0.02 240);
+  --muted-foreground: oklch(0.65 0.02 240);
+  --accent: oklch(0.22 0.04 155);
+  --accent-foreground: oklch(0.96 0.01 155);
   --destructive: oklch(0.65 0.22 25);
-  --border: oklch(0.22 0.035 155);
-  --input: oklch(0.18 0.03 155);
-  --ring: oklch(0.78 0.22 145);
-  --chart-3: oklch(0.78 0.15 80);
+  --border: oklch(0.22 0.02 240);
+  --input: oklch(0.20 0.02 240);
+  --ring: oklch(0.75 0.19 155);
+  --surface-hover: oklch(0.19 0.02 240);
+  --emerald-accent: oklch(0.75 0.19 155);
 }
 
-* { @apply border-border outline-ring/50; }
-body { @apply bg-background text-foreground font-sans relative overflow-x-hidden transition-colors duration-300; }
-button, input { font: inherit; }
-::selection { background: color-mix(in oklab, var(--primary) 40%, transparent); color: var(--primary-foreground); }
-
-/* Glow Text & Borders */
-.glow-text {
-  text-shadow: 0 0 10px var(--primary), 0 0 20px color-mix(in oklab, var(--primary) 50%, transparent);
+* {
+  @apply border-border outline-ring/40;
 }
 
-.border-glow {
-  box-shadow: 0 0 15px color-mix(in oklab, var(--primary) 35%, transparent);
+html {
+  scroll-behavior: smooth;
 }
 
-.glow-card {
-  box-shadow: 0 0 35px rgba(0, 0, 0, 0.7), inset 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent);
+body {
+  @apply bg-background text-foreground font-sans relative overflow-x-hidden antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200;
 }
 
-/* Custom scrollbar for terminal */
+button, input, select, textarea {
+  font: inherit;
+}
+
+/* Glassmorphism & Elevation */
+.glass-panel {
+  background: color-mix(in oklch, var(--card) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+
+.glass-card {
+  background: color-mix(in oklch, var(--card) 90%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .glass-card {
+  box-shadow: 0 4px 30px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Subtle Glows (Refined, not over-saturated) */
+.subtle-glow {
+  box-shadow: 0 0 20px color-mix(in oklch, var(--primary) 15%, transparent);
+}
+
+.border-subtle-glow {
+  border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+  box-shadow: 0 0 16px -2px color-mix(in oklch, var(--primary) 20%, transparent);
+}
+
+/* Clean Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--primary) 40%, transparent);
-  border-radius: 4px;
+  background: color-mix(in oklch, var(--foreground) 15%, transparent);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--foreground) 25%, transparent);
 }
 
 /* Hide Next.js Development Indicator Badge */
@@ -117,4 +155,3 @@ nextjs-portal,
 div[data-nextjs-router-indicator] {
   display: none !important;
 }
-
