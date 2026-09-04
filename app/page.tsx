@@ -16,7 +16,6 @@ import {
   Terminal as TerminalIcon,
   Volume2,
   VolumeX,
-  Binary,
   Radio,
   Cpu,
   ShieldAlert,
@@ -51,12 +50,12 @@ import {
   saveStoredZylaApiKey
 } from '@/lib/zyla-api'
 import { hackerAudio } from '@/lib/hacker-audio'
-import { MatrixBackground } from '@/components/matrix-background'
 import { TerminalConsole } from '@/components/terminal-console'
 import { EducationAcademy } from '@/components/education-academy'
 import { ZeroStorageModal } from '@/components/zero-storage-modal'
+import { ZylaApiChecker } from '@/components/zyla-api-checker'
 
-type Tab = 'overview' | 'checker' | 'academy' | 'terminal' | 'policies'
+type Tab = 'overview' | 'checker' | 'zyla' | 'academy' | 'terminal' | 'policies'
 type ThemeOption = 'dark' | 'light'
 type GeneratorMode = 'csprng' | 'diceware'
 
@@ -88,6 +87,12 @@ const tabBanners: Record<Tab, { category: string; title: string; subtitle: strin
     title: 'Zero-Knowledge Password Evaluator',
     subtitle: 'Shannon Entropy &middot; GPU Crack Resistance &middot; Breach Detection',
     description: 'Measure mathematical entropy (E = L \u00D7 log\u2082 N), detect leetspeak & dictionary patterns, and generate NIST-recommended Diceware passphrases in complete browser privacy.'
+  },
+  zyla: {
+    category: 'Cloud API Evaluation & Telemetry',
+    title: 'Zyla Labs API Checker',
+    subtitle: 'Endpoint #2114 &middot; Live Cloud Evaluation &middot; HTTP Telemetry',
+    description: 'Directly test credentials against Zyla Labs Password Analysis API, inspect raw JSON payloads, review HTTP request headers, and evaluate whether passwords are Weak, Moderate, Strong, or Unbreakable.'
   },
   academy: {
     category: 'Cybersecurity Education & Training',
@@ -121,7 +126,6 @@ export default function Page() {
 
   // Theme & Audio Controls
   const [theme, setTheme] = useState<ThemeOption>('light')
-  const [matrixEnabled, setMatrixEnabled] = useState(true)
   const [isAudioMuted, setIsAudioMuted] = useState(false)
 
   // Password Generator State
@@ -179,25 +183,42 @@ export default function Page() {
     setTimeout(() => setMemoryWipedFeedback(false), 2500)
   }
 
-  const handleQueryZyla = async (pwdToQuery?: string) => {
-    const target = pwdToQuery ?? password
-    if (!target) return
-    hackerAudio.playScan()
+  const handleQueryZyla = async (pwdToQuery?: string, isManual = false) => {
+    const target = (pwdToQuery ?? password).trim()
+    if (!target) {
+      setZylaResult(null)
+      return
+    }
+    if (isManual) hackerAudio.playScan()
     setIsZylaLoading(true)
     try {
       const res = await analyzePasswordWithZyla(target, zylaApiKey)
       setZylaResult(res)
-      if (res.success) {
-        hackerAudio.playSuccess()
-      } else {
-        hackerAudio.playAlert()
+      if (isManual) {
+        if (res.success) {
+          hackerAudio.playSuccess()
+        } else {
+          hackerAudio.playAlert()
+        }
       }
     } catch {
-      hackerAudio.playAlert()
+      if (isManual) hackerAudio.playAlert()
     } finally {
       setIsZylaLoading(false)
     }
   }
+
+  // Automatically evaluate password against API with 450ms debounce
+  useEffect(() => {
+    if (!password.trim()) {
+      setZylaResult(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      handleQueryZyla(password, false)
+    }, 450)
+    return () => clearTimeout(timer)
+  }, [password])
 
   const handleSaveZylaKey = (key: string) => {
     setZylaApiKey(key)
@@ -226,6 +247,7 @@ export default function Page() {
 
   const nav = [
     ['checker', 'Password Evaluator', KeyRound],
+    ['zyla', 'Zyla API Checker', Globe],
     ['overview', 'Threat Matrix', LayoutDashboard],
     ['academy', 'Security Academy', GraduationCap],
     ['terminal', 'Security Shell', TerminalIcon],
@@ -234,9 +256,6 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-background text-foreground" data-theme={theme}>
-      {/* Matrix Ambient Digital Rain Background */}
-      <MatrixBackground theme={theme} active={matrixEnabled} />
-
       {/* Zero-Storage Privacy Proof Modal */}
       <ZeroStorageModal
         isOpen={isPrivacyModalOpen}
@@ -337,21 +356,6 @@ export default function Page() {
               </button>
             </div>
 
-            <div className="pt-2 border-t border-border/60">
-              <button
-                onClick={() => setMatrixEnabled(!matrixEnabled)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl border transition-all ${
-                  matrixEnabled
-                    ? 'border-primary/40 bg-primary/10 text-primary font-semibold'
-                    : 'border-border text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                <span className="flex items-center gap-1.5 font-mono text-[11px]">
-                  <Binary className="size-3.5" /> Ambient Matrix Rain
-                </span>
-                <span className="text-[10px] font-bold">{matrixEnabled ? 'ON' : 'OFF'}</span>
-              </button>
-            </div>
           </div>
 
           {/* Privacy Proof Card */}
@@ -617,12 +621,9 @@ export default function Page() {
                         id="password-input"
                         type={visible ? 'text' : 'password'}
                         value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value)
-                          if (zylaResult) setZylaResult(null)
-                        }}
+                        onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleQueryZyla()
+                          if (e.key === 'Enter') handleQueryZyla(undefined, true)
                         }}
                         className="min-w-0 flex-1 bg-transparent px-4 py-3 font-mono text-base outline-none text-foreground placeholder:text-muted-foreground/40"
                         placeholder="Type or paste any password..."
@@ -640,11 +641,11 @@ export default function Page() {
                       </button>
 
                       <button
-                        onClick={() => handleQueryZyla()}
+                        onClick={() => handleQueryZyla(undefined, true)}
                         disabled={!password || isZylaLoading}
                         className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none mr-1"
-                        title={isZylaLoading ? 'Checking...' : 'Query Zyla Labs API'}
-                        aria-label={isZylaLoading ? 'Checking password' : 'Query Zyla Labs API'}
+                        title={isZylaLoading ? 'Evaluating via API...' : 'Evaluate via Zyla API'}
+                        aria-label={isZylaLoading ? 'Evaluating password' : 'Evaluate via Zyla API'}
                       >
                         {isZylaLoading ? (
                           <RotateCw className="size-4 animate-spin text-primary" />
@@ -706,7 +707,31 @@ export default function Page() {
                     <div className="p-3.5 rounded-xl border border-border bg-muted/20">
                       <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Zyla Cloud API</span>
                       <span className="font-bold text-foreground text-sm truncate block mt-0.5 capitalize">
-                        {zylaResult?.data?.result ? `"${zylaResult.data.result}"` : isZylaLoading ? 'Checking...' : 'Ready'}
+                        {isZylaLoading ? (
+                          <span className="text-primary flex items-center gap-1.5 font-mono text-xs">
+                            <RotateCw className="size-3 animate-spin" /> Evaluating...
+                          </span>
+                        ) : zylaResult?.data?.result ? (
+                          <span
+                            className={
+                              zylaResult.data.result.toLowerCase().includes('unbreakable')
+                                ? 'text-emerald-500 dark:text-emerald-400 font-extrabold'
+                                : zylaResult.data.result.toLowerCase().includes('strong')
+                                ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                                : zylaResult.data.result.toLowerCase().includes('moderate')
+                                ? 'text-amber-500 font-semibold'
+                                : 'text-destructive font-bold'
+                            }
+                          >
+                            {zylaResult.data.result}
+                          </span>
+                        ) : password ? (
+                          <span className="text-muted-foreground text-xs font-mono">
+                            Pending...
+                          </span>
+                        ) : (
+                          'Ready'
+                        )}
                       </span>
                     </div>
                   </div>
@@ -865,6 +890,18 @@ export default function Page() {
                     )}
                   </div>
                 </div>
+
+                {/* Embedded Zyla API Checker Suite */}
+                <div className="pt-2">
+                  <ZylaApiChecker currentPassword={password} onSyncPassword={setPassword} />
+                </div>
+              </section>
+            )}
+
+            {/* TAB: DEDICATED ZYLA API CHECKER */}
+            {tab === 'zyla' && (
+              <section className="max-w-4xl mx-auto space-y-6">
+                <ZylaApiChecker currentPassword={password} onSyncPassword={setPassword} />
               </section>
             )}
 
