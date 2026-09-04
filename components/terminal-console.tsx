@@ -51,12 +51,22 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
           </p>
         </div>
       ),
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: 'SYSTEM'
     }
   ])
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    setHistory(prev =>
+      prev.map(item =>
+        item.id === 'welcome' && item.timestamp === 'SYSTEM'
+          ? { ...item, timestamp: new Date().toLocaleTimeString() }
+          : item
+      )
+    )
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -310,7 +320,7 @@ export function TerminalConsole({ onThemeChange, currentTheme = 'light' }: Termi
             <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
               <span className="text-primary font-bold">&gt;</span>
               <span className="text-foreground font-semibold">{item.command}</span>
-              <span className="text-[10px] text-muted-foreground/60 ml-auto">{item.timestamp}</span>
+              <span className="text-[10px] text-muted-foreground/60 ml-auto" suppressHydrationWarning>{item.timestamp}</span>
             </div>
             <div className="pl-3">{item.output}</div>
           </div>

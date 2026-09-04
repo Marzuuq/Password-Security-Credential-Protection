@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   GraduationCap,
   ShieldAlert,
@@ -165,10 +165,14 @@ export function EducationAcademy({ onTestPassword }: EducationAcademyProps) {
   const [dicewareSeparator, setDicewareSeparator] = useState('-')
   const [dicewareCapitalize, setDicewareCapitalize] = useState(false)
   const [dicewareNumber, setDicewareNumber] = useState(false)
-  const [generatedPassphrase, setGeneratedPassphrase] = useState(() =>
-    generateDicewarePassphrase(4, '-', false, false)
+  const [generatedPassphrase, setGeneratedPassphrase] = useState(
+    'correct-horse-battery-staple'
   )
   const [copiedDiceware, setCopiedDiceware] = useState(false)
+
+  useEffect(() => {
+    setGeneratedPassphrase(generateDicewarePassphrase(4, '-', false, false))
+  }, [])
 
   const handleRegenDiceware = () => {
     const p = generateDicewarePassphrase(dicewareWords, dicewareSeparator, dicewareCapitalize, dicewareNumber)
@@ -596,7 +600,10 @@ export function EducationAcademy({ onTestPassword }: EducationAcademyProps) {
 
             {/* Generated Display */}
             <div className="flex flex-col sm:flex-row items-center gap-3 p-4 rounded-xl border border-border bg-muted/20 font-mono">
-              <span className="flex-1 text-base md:text-lg font-bold text-emerald-600 dark:text-emerald-400 select-all break-all">
+              <span
+                suppressHydrationWarning
+                className="flex-1 text-base md:text-lg font-bold text-emerald-600 dark:text-emerald-400 select-all break-all"
+              >
                 {generatedPassphrase}
               </span>
 

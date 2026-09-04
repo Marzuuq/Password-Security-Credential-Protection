@@ -120,7 +120,7 @@ export default function Page() {
   const [memoryWipedFeedback, setMemoryWipedFeedback] = useState(false)
 
   // Theme & Audio Controls
-  const [theme, setTheme] = useState<ThemeOption>('dark')
+  const [theme, setTheme] = useState<ThemeOption>('light')
   const [matrixEnabled, setMatrixEnabled] = useState(true)
   const [isAudioMuted, setIsAudioMuted] = useState(false)
 
@@ -128,21 +128,19 @@ export default function Page() {
   const [generatorMode, setGeneratorMode] = useState<GeneratorMode>('csprng')
   const [csprngLength, setCsprngLength] = useState(16)
   const [dicewareWords, setDicewareWords] = useState(4)
-  const [generatedPassword, setGeneratedPassword] = useState(() =>
-    generateStrongPassword(16)
-  )
+  const [generatedPassword, setGeneratedPassword] = useState('kX9#mQ2$vL5*pW8&')
   const [copied, setCopied] = useState(false)
 
   // Zyla Labs API Integration State
   const [zylaResult, setZylaResult] = useState<ZylaAnalysisResult | null>(null)
   const [isZylaLoading, setIsZylaLoading] = useState(false)
   const [zylaApiKey, setZylaApiKey] = useState('')
-  const [showZylaConfig, setShowZylaConfig] = useState(false)
   const [showApiTelemetry, setShowApiTelemetry] = useState(false)
   const [copiedJson, setCopiedJson] = useState(false)
 
   useEffect(() => {
     setZylaApiKey(getStoredZylaApiKey())
+    setGeneratedPassword(generateStrongPassword(16))
   }, [])
 
   // Password Analysis Memo
@@ -205,7 +203,6 @@ export default function Page() {
     setZylaApiKey(key)
     saveStoredZylaApiKey(key)
     hackerAudio.playSuccess()
-    setShowZylaConfig(false)
   }
 
   const handleCopyZylaJson = () => {
@@ -594,60 +591,17 @@ export default function Page() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setShowZylaConfig(!showZylaConfig)
-                          hackerAudio.playKeypress()
-                        }}
-                        className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                          zylaApiKey
-                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                            : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
-                        }`}
-                        title="Configure Zyla Labs API Key"
-                      >
-                        <Key className="size-3" />
-                        <span>{zylaApiKey ? 'API Key Set' : 'Configure API Key'}</span>
-                      </button>
-
-                      {password && (
+                    {password && (
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={handleSanitizeMemory}
                           className="px-3 py-1.5 rounded-xl text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border transition-colors flex items-center gap-1.5"
                         >
                           <Trash2 className="size-3.5" /> Clear
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Zyla API Drawer */}
-                  {showZylaConfig && (
-                    <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-2.5 text-xs animate-in fade-in duration-150">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-foreground flex items-center gap-1.5">
-                          <Key className="size-3.5 text-primary" /> Optional Zyla Labs API Key
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">Stored only in local storage</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="password"
-                          value={zylaApiKey}
-                          onChange={(e) => setZylaApiKey(e.target.value)}
-                          placeholder="Paste your Zyla API key..."
-                          className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground font-mono"
-                        />
-                        <button
-                          onClick={() => handleSaveZylaKey(zylaApiKey)}
-                          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Password Input Field */}
                   <div className="space-y-2">
@@ -688,15 +642,15 @@ export default function Page() {
                       <button
                         onClick={() => handleQueryZyla()}
                         disabled={!password || isZylaLoading}
-                        className="px-4 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none mr-1"
-                        title="Query Zyla Labs API"
+                        className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none mr-1"
+                        title={isZylaLoading ? 'Checking...' : 'Query Zyla Labs API'}
+                        aria-label={isZylaLoading ? 'Checking password' : 'Query Zyla Labs API'}
                       >
                         {isZylaLoading ? (
-                          <RotateCw className="size-3.5 animate-spin text-primary" />
+                          <RotateCw className="size-4 animate-spin text-primary" />
                         ) : (
-                          <Globe className="size-3.5 text-primary" />
+                          <Globe className="size-4 text-primary" />
                         )}
-                        <span className="hidden sm:inline">{isZylaLoading ? 'Checking...' : 'Zyla API'}</span>
                       </button>
                     </div>
                   </div>
@@ -839,7 +793,10 @@ export default function Page() {
                     </div>
 
                     <div className="flex items-center gap-2 p-3 rounded-xl border border-border bg-background font-mono text-xs">
-                      <span className="flex-1 text-emerald-600 dark:text-emerald-400 font-bold select-all tracking-wide truncate">
+                      <span
+                        suppressHydrationWarning
+                        className="flex-1 text-emerald-600 dark:text-emerald-400 font-bold select-all tracking-wide truncate"
+                      >
                         {generatedPassword}
                       </span>
                       <button
