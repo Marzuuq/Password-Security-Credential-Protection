@@ -35,6 +35,48 @@ interface ZylaApiCheckerProps {
   onSyncPassword?: (password: string) => void
 }
 
+export function getStrengthDetails(result?: string) {
+  const text = (result || '').toLowerCase()
+  if (text.includes('unbreakable')) {
+    return {
+      tier: 'Unbreakable Password',
+      color: 'text-emerald-500 dark:text-emerald-400',
+      bg: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300',
+      glow: 'shadow-[0_0_20px_rgba(16,185,129,0.25)]',
+      icon: ShieldCheck,
+      description: 'Maximum resilience. Estimated crack time exceeds centuries against distributed GPU clusters and rainbow tables.'
+    }
+  }
+  if (text.includes('strong')) {
+    return {
+      tier: 'Strong Password',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400',
+      glow: 'shadow-[0_0_15px_rgba(16,185,129,0.15)]',
+      icon: CheckCircle2,
+      description: 'High entropy with varied character sets. Resistant to offline dictionary and hybrid attacks.'
+    }
+  }
+  if (text.includes('moderate')) {
+    return {
+      tier: 'Moderate Password',
+      color: 'text-amber-500 dark:text-amber-400',
+      bg: 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400',
+      glow: 'shadow-[0_0_15px_rgba(245,158,11,0.15)]',
+      icon: AlertTriangle,
+      description: 'Moderate resilience. May be vulnerable to targeted GPU brute-force or rule-based dictionary attacks.'
+    }
+  }
+  return {
+    tier: 'Weak Password',
+    color: 'text-destructive',
+    bg: 'bg-destructive/15 border-destructive/40 text-destructive',
+    glow: 'shadow-[0_0_15px_rgba(239,68,68,0.2)]',
+    icon: AlertTriangle,
+    description: 'High vulnerability. Subservient to fast credential stuffing, wordlist attacks, or single-hash dictionaries.'
+  }
+}
+
 export function ZylaApiChecker({ currentPassword = '', onSyncPassword }: ZylaApiCheckerProps) {
   const [testPassword, setTestPassword] = useState(currentPassword)
   const [apiKey, setApiKey] = useState('')
@@ -58,26 +100,44 @@ export function ZylaApiChecker({ currentPassword = '', onSyncPassword }: ZylaApi
     hackerAudio.playSuccess()
   }
 
-  const handleExecuteAnalysis = async () => {
-    if (!testPassword) return
+  const handleExecuteAnalysis = async (pwd?: string, keyToUse?: string, isManual = false) => {
+    const target = (pwd ?? testPassword).trim()
+    if (!target) {
+      setResponse(null)
+      return
+    }
 
-    hackerAudio.playScan()
+    if (isManual) hackerAudio.playScan()
     setIsLoading(true)
 
     try {
-      const res = await analyzePasswordWithZyla(testPassword, apiKey)
+      const res = await analyzePasswordWithZyla(target, keyToUse ?? apiKey)
       setResponse(res)
-      if (res.success) {
-        hackerAudio.playSuccess()
-      } else {
-        hackerAudio.playAlert()
+      if (isManual) {
+        if (res.success) {
+          hackerAudio.playSuccess()
+        } else {
+          hackerAudio.playAlert()
+        }
       }
     } catch {
-      hackerAudio.playAlert()
+      if (isManual) hackerAudio.playAlert()
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Automatic evaluation with 400ms debounce
+  useEffect(() => {
+    if (!testPassword.trim()) {
+      setResponse(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      handleExecuteAnalysis(testPassword, apiKey, false)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [testPassword, apiKey])
 
   const handleCopyJson = () => {
     if (!response) return
@@ -206,14 +266,14 @@ export function ZylaApiChecker({ currentPassword = '', onSyncPassword }: ZylaApi
             value={testPassword}
             onChange={(e) => setTestPassword(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleExecuteAnalysis()
+              if (e.key === 'Enter') handleExecuteAnalysis(undefined, undefined, true)
             }}
             placeholder="Type password to evaluate against Zyla API..."
             className="flex-1 rounded-lg border border-primary/40 bg-background/90 px-4 py-2.5 text-sm font-mono outline-none focus:border-primary text-foreground"
           />
 
           <button
-            onClick={handleExecuteAnalysis}
+            onClick={() => handleExecuteAnalysis(undefined, undefined, true)}
             disabled={!testPassword || isLoading}
             className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(0,255,102,0.3)]"
           >
@@ -229,6 +289,31 @@ export function ZylaApiChecker({ currentPassword = '', onSyncPassword }: ZylaApi
               </>
             )}
           </button>
+        </div>
+
+        {/* 4 Classification Tiers Reference */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+          {[
+            { name: 'Weak', desc: '< 8 chars / basic words', tier: 'Weak Password', color: 'border-red-500/50 text-red-500 dark:text-red-400 bg-red-500/10' },
+            { name: 'Moderate', desc: '8-11 chars or 2 types', tier: 'Moderate Password', color: 'border-amber-500/50 text-amber-500 dark:text-amber-400 bg-amber-500/10' },
+            { name: 'Strong', desc: '12-19 mixed chars', tier: 'Strong Password', color: 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' },
+            { name: 'Unbreakable', desc: '20+ chars (or 16+ mixed)', tier: 'Unbreakable Password', color: 'border-emerald-400 text-emerald-500 dark:text-emerald-300 bg-emerald-500/20' }
+          ].map((item) => {
+            const isMatch = response?.data?.result?.toLowerCase().includes(item.name.toLowerCase())
+            return (
+              <div
+                key={item.name}
+                className={`p-2 rounded-lg border text-center transition-all ${
+                  isMatch
+                    ? `${item.color} font-bold ring-2 ring-primary/40 shadow-sm scale-[1.02]`
+                    : 'border-border/60 bg-muted/20 text-muted-foreground opacity-70'
+                }`}
+              >
+                <p className="text-xs uppercase font-extrabold">{item.name}</p>
+                <p className="text-[9px] truncate mt-0.5">{item.desc}</p>
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -296,14 +381,26 @@ export function ZylaApiChecker({ currentPassword = '', onSyncPassword }: ZylaApi
                 </button>
               </div>
 
-              {response.data?.result && (
-                <div className="mb-3 p-3 rounded-lg border border-primary/40 bg-primary/10 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-bold">ZYLA CLOUD RESULT:</span>
-                  <span className="text-sm font-extrabold text-primary uppercase tracking-wider glow-text">
-                    &quot;{response.data.result}&quot;
-                  </span>
-                </div>
-              )}
+              {response.data?.result && (() => {
+                const details = getStrengthDetails(response.data.result)
+                const Icon = details.icon
+                return (
+                  <div className={`mb-4 p-3.5 rounded-xl border ${details.bg} ${details.glow} transition-all space-y-1.5`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold flex items-center gap-1.5">
+                        <Icon className={`size-4 ${details.color}`} />
+                        ZYLA CLOUD RESULT:
+                      </span>
+                      <span className={`text-sm font-extrabold ${details.color} uppercase tracking-wider glow-text`}>
+                        &quot;{details.tier}&quot;
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {details.description}
+                    </p>
+                  </div>
+                )
+              })()}
 
               <pre className="text-emerald-400 font-mono text-[11px] overflow-x-auto select-all max-h-56 leading-relaxed">
                 {JSON.stringify(response.data || response, null, 2)}
@@ -349,26 +446,33 @@ export function ZylaApiChecker({ currentPassword = '', onSyncPassword }: ZylaApi
           {/* TAB 3: Comparison View */}
           {activeTab === 'comparison' && (
             <div className="grid sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-lg border border-primary/40 bg-primary/10 space-y-2">
-                <p className="font-bold text-primary flex items-center gap-1.5">
-                  <Globe className="size-3.5" /> ZYLA LABS CLOUD EVALUATION
-                </p>
-                <p className="text-2xl font-extrabold text-foreground capitalize">
-                  {response.data?.result || 'Evaluated'}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Neural pattern and dictionary heuristic evaluation via Zyla Labs API engine.
-                </p>
-              </div>
+              {(() => {
+                const details = getStrengthDetails(response.data?.result)
+                const Icon = details.icon
+                return (
+                  <div className={`p-4 rounded-xl border ${details.bg} ${details.glow} space-y-2 transition-all`}>
+                    <p className="font-bold text-xs flex items-center gap-1.5 text-foreground">
+                      <Globe className="size-3.5 text-primary" /> ZYLA LABS CLOUD EVALUATION
+                    </p>
+                    <p className={`text-2xl font-extrabold ${details.color} flex items-center gap-2`}>
+                      <Icon className="size-6 shrink-0" />
+                      {details.tier}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {details.description}
+                    </p>
+                  </div>
+                )
+              })()}
 
-              <div className="p-3.5 rounded-lg border border-border bg-muted/40 space-y-2">
-                <p className="font-bold text-foreground flex items-center gap-1.5">
+              <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-2">
+                <p className="font-bold text-foreground flex items-center gap-1.5 text-xs">
                   <ShieldCheck className="size-3.5 text-emerald-400" /> LOCAL SHANNON ENTROPY ENGINE
                 </p>
                 <p className="text-2xl font-extrabold text-emerald-400">
                   Zero-Storage Math
                 </p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
                   Client-side $E = L \times \log_2 N$ computation aligned with NIST SP 800-63B standards.
                 </p>
               </div>
